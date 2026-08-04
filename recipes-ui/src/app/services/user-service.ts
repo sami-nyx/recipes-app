@@ -1,6 +1,7 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
+import { AuthorData } from './author-data.service';
 
 export interface RegisterUserDto {
   name: string;
@@ -44,6 +45,7 @@ export class UserService {
     );
   }
 
+
   login(credentials: any): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
       tap((response) => this.handleAuthentication(response))
@@ -68,6 +70,8 @@ export class UserService {
     return this.token();
   }
 
+  
+
   private handleAuthentication(response: AuthResponse): void {
     const { accessToken, user } = response;
     
@@ -88,4 +92,5 @@ export class UserService {
     const userJson = localStorage.getItem(this.USER_KEY);
     return userJson ? JSON.parse(userJson) : null;
   }
+
 }

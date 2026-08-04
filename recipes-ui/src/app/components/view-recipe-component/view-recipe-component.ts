@@ -17,7 +17,6 @@ import { MatListModule } from '@angular/material/list';
   standalone: true,
   imports: [
     CommonModule,
-    RouterLink,
     MatButtonModule,
     MatIconModule,
     MatChipsModule,
@@ -31,7 +30,6 @@ import { MatListModule } from '@angular/material/list';
 export class ViewRecipeComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private location = inject(Location);
   private recipeService = inject(RecipeService);
 
   // Explicitly allow null or undefined so signals stay type-safe
@@ -79,6 +77,6 @@ export class ViewRecipeComponent implements OnInit {
   }
 
   goBack(): void {
-    this.location.back();
+    this.router.navigate(['/explore'])
   }
 }

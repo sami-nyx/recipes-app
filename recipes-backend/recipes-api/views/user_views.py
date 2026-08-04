@@ -13,3 +13,8 @@ def login():
     data = request.get_json() or {}
     response_body, status_code = UserController.login_user(data)
     return jsonify(response_body), status_code  
+# 💡 GET endpoint for public author/user data by ID
+@user_bp.route('/author/<string:author_id>', methods=['GET'])
+def get_author(author_id):
+    response_body, status_code = UserController.get_author_by_id(author_id)
+    return jsonify(response_body), status_code

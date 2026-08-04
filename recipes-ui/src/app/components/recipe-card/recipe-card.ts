@@ -14,7 +14,6 @@ import { MatDialog } from '@angular/material/dialog';
   standalone: true,
   imports: [
     CommonModule,
-    RouterLink, // 2. Add to imports
     MatCardModule,
     MatButtonModule,
     MatIconModule
@@ -26,22 +25,25 @@ export class RecipeCard {
   // private router = inject(Router); // Optional: if you need programmatic navigation
 
   recipe = input.required<Recipe>();
-deleteClick = output<Recipe>(); // <--- New delete output
+  deleteClick = output<Recipe>(); // <--- New delete output
   // Outputs for user actions
+  
   favoriteToggle = output<Recipe>();
   cardClick = output<Recipe>(); // recipe id
   authorClick = output<Recipe>(); // author id or username
+  
   private router = inject(Router);
-private userService = inject(UserService);
-private dialog = inject(MatDialog); // <--- Inject MatDialog
+  private userService = inject(UserService);
+  private dialog = inject(MatDialog); // <--- Inject MatDialog
   readonly isAuthenticated = this.userService.isAuthenticated;
+  
   isOwner(): boolean {
     return this.userService.isOwner(this.recipe().author?.id);
   }
   onEdit(event: Event): void {
     event.stopPropagation(); // Stop card click from triggering
     // Adjust route path to match your App Routing setup
-    this.router.navigate(['/recipes', this.recipe().id, 'edit']); 
+    this.router.navigate(['/recipes', this.recipe().id, 'edit']);
   }
   onCardClick(event?: MouseEvent): void {
     if (event) {
@@ -54,7 +56,7 @@ private dialog = inject(MatDialog); // <--- Inject MatDialog
     event.stopPropagation(); // Prevents triggering onCardClick
     this.authorClick.emit(this.recipe()); // or recipe().author.id
   }
-  
+
   onToggleFavorite(event: Event): void {
     event.stopPropagation();
     const currentRecipe = this.recipe();
@@ -62,7 +64,7 @@ private dialog = inject(MatDialog); // <--- Inject MatDialog
     currentRecipe.isStarred = !currentRecipe.isStarred;
     this.favoriteToggle.emit(currentRecipe);
   }
-onDelete(event: Event): void {
+  onDelete(event: Event): void {
     event.stopPropagation(); // Stop card click navigation
 
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {

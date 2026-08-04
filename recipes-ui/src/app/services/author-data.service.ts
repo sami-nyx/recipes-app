@@ -1,6 +1,8 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { delay } from 'rxjs/operators';
+import { UserService } from './user-service';
+import { HttpClient } from '@angular/common/http';
 
 export interface AuthorData {
   id: string;
@@ -17,6 +19,11 @@ export interface AuthorData {
   providedIn: 'root'
 })
 export class AuthorDataService {
+
+  constructor(private http: HttpClient) {}
+  private userService = inject(UserService);
+
+  private readonly apiUrl = 'http://localhost:5000/api/users';
   private mockAuthors: AuthorData[] = [
     {
       id: 'usr-1',
@@ -40,13 +47,19 @@ export class AuthorDataService {
     }
   ];
 
-  getAuthorById(id: string): Observable<AuthorData> {
-    const author = this.mockAuthors.find(a => a.id === id || a.username === id);
+  getMockAuthorById(id: string){
+    const authorData =this.mockAuthors.find(author => author.id === id);
+    
 
-    if (author) {
-      return of({ ...author }).pipe(delay(500));
+    if (authorData) {
+      return authorData;
     }
 
-    return throwError(() => new Error(`Author with ID "${id}" not found.`)).pipe(delay(500));
+    return null;
   }
+
+  getAuthorById(id: string): Observable<AuthorData> {
+  // Directly return the HTTP request Observable
+  return this.http.get<AuthorData>(`${this.apiUrl}/author/${id}`);
 }
+  }

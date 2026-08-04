@@ -66,3 +66,22 @@ class UserController:
             'user': user.to_dict(),
             'accessToken': token
         }, 200
+    @staticmethod
+    def get_author_by_id(author_id):
+        user = User.query.get(author_id) # or find by ID depending on your ORM
+        
+        if not user:
+            return {"error": "Author not found"}, 404
+        
+        # Return public author profile payload
+        author_data = {
+            "id": user.id,
+            "name": user.name,
+            "username": user.username,
+            "avatarUrl": user.avatar_url,
+            "bio": user.bio,
+            "recipesCount": len(user.recipes) if hasattr(user, 'recipes') else 0,
+            "followersCount": 0 # Replace with actual logic if followers table exists
+        }
+        
+        return author_data, 200

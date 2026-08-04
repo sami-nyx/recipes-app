@@ -29,14 +29,18 @@
         </div>
 
         <div class="profile-actions">
-          <button 
-            mat-flat-button 
-            [color]="isFollowing() ? 'basic' : 'primary'"
-            class="follow-btn"
-            (click)="onFollowClick($event)"
-          >
-            {{ isFollowing() ? 'Following' : 'Follow' }}
-          </button>
+          @if (!isOwner() && isAuthenticated()) {
+            
+            <button 
+              mat-flat-button 
+              [color]="isFollowing() ? 'basic' : 'primary'"
+              class="follow-btn"
+              (click)="onFollowClick($event)"
+            >
+              {{ isFollowing() ? 'Following' : 'Follow' }}
+            </button>
+          }
+
         </div>
       </header>
 
