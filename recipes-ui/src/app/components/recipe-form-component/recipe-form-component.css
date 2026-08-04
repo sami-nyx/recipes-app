@@ -1,0 +1,119 @@
+.form-container {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem;
+
+  .form-wrapper {
+    max-width: 800px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    h2 {
+      margin: 0;
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+  }
+
+  .recipe-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .section-card {
+    border-radius: 12px;
+    padding: 1rem;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+
+    .col-span-2 {
+      grid-column: span 2;
+    }
+  }
+
+  .part-block {
+    margin-bottom: 1.5rem;
+
+    .part-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .part-title-input {
+        flex: 1;
+        margin-right: 1rem;
+      }
+    }
+  }
+
+  .nested-array {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .ingredient-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+
+    .flex-1 { flex: 1; }
+    .flex-2 { flex: 2; }
+  }
+
+  .instruction-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+
+    .step-number {
+      font-weight: bold;
+      font-size: 1.1rem;
+      padding-top: 1rem;
+      color: #3f51b5;
+    }
+
+    .full-width {
+      flex: 1;
+    }
+  }
+
+  .add-sub-btn {
+    align-self: flex-start;
+    margin-top: 0.5rem;
+  }
+
+  .add-part-wrapper {
+    display: flex;
+    justify-content: center;
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+
+    .submit-btn {
+      padding: 0.75rem 2rem;
+      font-size: 1rem;
+    }
+  }
+
+  .my-4 {
+    margin: 1.5rem 0;
+  }
+}

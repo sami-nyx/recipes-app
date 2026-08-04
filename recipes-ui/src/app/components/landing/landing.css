@@ -1,0 +1,63 @@
+.landing-container {
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+  box-sizing: border-box;
+}
+
+.hero {
+  margin-top: 10rem;
+  text-align: center;
+  margin-bottom: 3.5rem;
+}
+
+.hero .hero-icon mat-icon {
+  font-size: 64px;
+  width: 64px;
+  height: 64px;
+  color: #3f51b5;
+}
+
+.hero h1 {
+  font-size: 2.75rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+.subtitle {
+  min-height: 50px;/* Adjust space: 0.25rem (small), 0.5rem (medium), 1rem (large) */
+  padding-top: 10px;
+  display: block;      /* Ensures margin applies reliably if it's a <span> */
+}
+
+.hero .subtitle {
+  font-size: 1.25rem;
+  color: #666;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.actions-grid .action-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.actions-grid .action-card mat-card-content {
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+  color: #444;
+}
+
+.actions-grid .action-card.highlight {
+  border: 1px solid rgba(63, 81, 181, 0.25);
+}

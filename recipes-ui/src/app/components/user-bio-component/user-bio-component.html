@@ -1,0 +1,84 @@
+<div class="user-bio-container">
+  @if (isLoading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="40"></mat-spinner>
+      <span>Loading profile...</span>
+    </div>
+  } @else if (hasError()) {
+    <div class="error-state">
+      <mat-icon color="warn">error_outline</mat-icon>
+      <p>Could not load user profile.</p>
+    </div>
+  } @else if (userData(); as user) {
+    <div class="profile-layout">
+      <!-- 1. Header Section: Avatar, Name, and Actions -->
+      <header class="profile-header">
+        <div class="avatar-container">
+          @if (user.avatarUrl) {
+            <img [src]="user.avatarUrl" [alt]="user.name" class="profile-avatar" />
+          } @else {
+            <div class="profile-avatar-fallback">
+              {{ user.name.charAt(0) }}
+            </div>
+          }
+        </div>
+
+        <div class="identity-group">
+          <h1 class="profile-name">{{ user.name }}</h1>
+          <span class="profile-handle">&#64;{{ user.username }}</span>
+        </div>
+
+        <div class="profile-actions">
+          <button 
+            mat-flat-button 
+            [color]="isFollowing() ? 'basic' : 'primary'"
+            class="follow-btn"
+            (click)="onFollowClick($event)"
+          >
+            {{ isFollowing() ? 'Following' : 'Follow' }}
+          </button>
+        </div>
+      </header>
+
+      <mat-divider></mat-divider>
+
+      <!-- 2. Bio Section -->
+      @if (user.bio) {
+        <section class="profile-bio-section">
+          <h2>About</h2>
+          <p class="bio-text">{{ user.bio }}</p>
+        </section>
+
+        <mat-divider></mat-divider>
+      }
+
+      <!-- 3. Stats & Metadata Section -->
+      <footer class="profile-meta-section">
+        <div class="stats-row">
+          <div class="stat-item">
+            <span class="stat-value">{{ user.recipesCount }}</span>
+            <span class="stat-label">Recipes</span>
+          </div>
+
+          <mat-divider [vertical]="true" class="stat-divider"></mat-divider>
+
+          <div class="stat-item">
+            <span class="stat-value">{{ user.followersCount }}</span>
+            <span class="stat-label">Followers</span>
+          </div>
+        </div>
+
+        @if (user.joinedDate) {
+          <div class="joined-date">
+            <mat-icon class="meta-icon">calendar_today</mat-icon>
+            <span>Member since {{ user.joinedDate | date:'MMMM yyyy' }}</span>
+          </div>
+        }
+      </footer>
+    </div>
+  }
+</div>
+@if (isAuthenticated() && currentUser(); as user) {
+  <p class="edit-profile-link">
+    <a >Edit Profile</a>
+}

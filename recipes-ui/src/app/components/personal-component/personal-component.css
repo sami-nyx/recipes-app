@@ -1,0 +1,92 @@
+:host {
+  display: block;
+  width: 20%;
+}
+
+.personal-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1rem 0;
+}
+
+.personal-wrapper {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+/* Center-aligned hero header layout */
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.avatar-icon {
+  width: 48px;
+  height: 48px;
+  background-color: #e8eaf6;
+  color: #3f51b5;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0 0 0.35rem 0;
+}
+
+.subtitle {
+  font-size: 0.925rem;
+  color: #666666;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.content {
+  margin: 1.25rem 0;
+}
+
+.features-list {
+  list-style: none;
+  padding: 0;
+  margin-left: 5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.features-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #424242;
+  font-size: 0.95rem;
+}
+
+.feature-icon {
+  color: #3f51b5;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.actions {
+  display: flex;
+  justify-content: center; /* Centered button to match header */
+  margin-top: 1.5rem;
+}
+
+.register-btn {
+  padding: 0.5rem 1.5rem;
+  font-size: 0.95rem;
+  border-radius: 8px;
+}

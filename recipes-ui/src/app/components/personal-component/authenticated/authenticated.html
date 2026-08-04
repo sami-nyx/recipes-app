@@ -1,0 +1,58 @@
+<div class="personal-container">
+  <div class="personal-wrapper">
+    
+    <!-- Header Section (Avatar Centered Above Title) -->
+    <div class="header">
+      <div class="avatar-icon">
+        @if (user()?.avatarUrl) {
+          <img [src]="user()?.avatarUrl" [alt]="user()?.name" class="avatar-img" />
+        } @else {
+          <mat-icon>person</mat-icon>
+        }
+      </div>
+      <div class="header-text">
+        <h2 class="title">Welcome back</h2>
+        <h2 class="title">{{ user()?.name }}</h2>
+        <p class="subtitle">
+          &#64;{{ user()?.username }} &bull; {{ user()?.email }}
+        </p>
+        @if (user()?.bio) {
+          <p class="user-bio">"{{ user()?.bio }}"</p>
+        }
+      </div>
+    </div>
+
+    <!-- Content Section -->
+    <div class="content">
+      <ul class="features-list">
+        <li>
+          <mat-icon class="feature-icon">star_outline</mat-icon>
+          <span><strong>0</strong> saved & bookmarked recipes</span>
+        </li>
+        <li>
+          <mat-icon class="feature-icon">restaurant_menu</mat-icon>
+          <span><strong>0</strong> custom created dishes</span>
+        </li>
+        <li>
+          <mat-icon class="feature-icon">badge</mat-icon>
+          <span class="id-text">User ID: {{ user()?.id }}</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Actions Section -->
+     
+    <div class="actions">
+     <button mat-flat-button color="primary" routerLink="/recipes/create">
+        <mat-icon>add</mat-icon> Create Recipe
+      </button>
+    </div>  
+    <div class="actions">
+      <button mat-flat-button color="warn" class="action-btn" (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        Sign Out
+      </button>
+    </div>
+
+  </div>
+</div>

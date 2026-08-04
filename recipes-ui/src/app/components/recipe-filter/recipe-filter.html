@@ -1,0 +1,51 @@
+<aside class="sidebar">
+  <h2>Explore Recipes</h2>
+
+  <!-- Toggle Only My Recipes (Visible when authenticated) -->
+  @if (isAuthenticated()) {
+    <div class="filter-group toggle-group">
+      <mat-slide-toggle 
+        [ngModel]="onlyMyRecipes()" 
+        (ngModelChange)="onlyMyRecipes.set($event); onFilterUpdated()"
+        color="primary">
+        Only My Recipes
+      </mat-slide-toggle>
+    </div>
+  }
+
+  <!-- Search Input -->
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Search recipes...</mat-label>
+    <mat-icon matPrefix>search</mat-icon>
+    <input 
+      matInput 
+      [ngModel]="searchQuery()" 
+      (ngModelChange)="searchQuery.set($event); onFilterUpdated()"
+      placeholder="e.g. Burger, Chicken, Tofu" 
+    />
+    @if (searchQuery()) {
+      <button matSuffix mat-icon-button (click)="searchQuery.set(''); onFilterUpdated()">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
+  <!-- Prep Time Filter -->
+  <div class="filter-group">
+    <div class="filter-label">
+      <span>Max Prep Time:</span>
+      <strong>{{ maxPrepTime() }} mins</strong>
+    </div>
+    <mat-slider min="5" max="60" step="5" discrete class="full-width">
+      <input 
+        matSliderThumb 
+        [ngModel]="maxPrepTime()" 
+        (ngModelChange)="maxPrepTime.set($event); onFilterUpdated()" 
+      />
+    </mat-slider>
+  </div>
+
+  <button mat-stroked-button (click)="resetFilters()" class="full-width">
+    Reset Filters
+  </button>
+</aside>

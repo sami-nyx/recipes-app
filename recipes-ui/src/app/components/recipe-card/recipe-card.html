@@ -1,0 +1,78 @@
+<mat-card class="recipe-card" appearance="outlined" (click)="onCardClick()">
+
+  <div class="author-header clickable" (click)="onAuthorClick($event)">
+    <div class="author-info">
+      @if (recipe().author.avatarUrl) {
+        <img [src]="recipe().author.avatarUrl" [alt]="recipe().author.name" class="avatar" />
+      } @else {
+        <div class="avatar-fallback">
+          {{ recipe().author.name.charAt(0) }}
+        </div>
+      }
+      <div class="author-names">
+        <span class="author-name">{{ recipe().author.name }}</span>
+        <span class="author-handle">&#64;{{ recipe().author.username }}</span>
+      </div>
+    </div>
+    <span class="created-date">{{ recipe().createdAt | date:'shortDate' }}</span>
+  </div>
+
+  <!-- Image Header / Fallback Placeholder -->
+  @if (recipe().imageUrl) {
+    <img mat-card-image [src]="recipe().imageUrl" [alt]="recipe().title" class="card-image" />
+  } @else {
+    <div class="image-placeholder">
+      <mat-icon>menu_book</mat-icon>
+    </div>
+  }
+
+  <mat-card-header>
+    <mat-card-title>{{ recipe().title }}</mat-card-title>
+    <mat-card-subtitle>{{ recipe().prepTimeMinutes + recipe().cookTimeMinutes }} mins total</mat-card-subtitle>
+  </mat-card-header>
+
+  <!-- Card Body & Metrics -->
+  <mat-card-content>
+    <p class="description">{{ recipe().description }}</p>
+
+    <!-- Metrics Row -->
+    <div class="metrics-row">
+      @if (recipe().costPer100g) {
+        <span class="metric-badge cost">
+          <mat-icon>attach_money</mat-icon> {{ recipe().costPer100g | number:'1.2-2' }}/100g
+        </span>
+      }
+      @if (recipe().caloriesPer100g) {
+        <span class="metric-badge calories">
+          <mat-icon>local_fire_department</mat-icon> {{ recipe().caloriesPer100g }} kcal/100g
+        </span>
+      }
+    </div>
+  </mat-card-content>
+
+  <!-- Card Footer / Actions -->
+  <mat-card-actions align="end" class="card-actions">
+    <button mat-icon-button (click)="onToggleFavorite($event)" class="fav-button">
+      <mat-icon [class.starred]="recipe().isStarred">
+        {{ recipe().isStarred ? 'star' : 'star_border' }}
+      </mat-icon>
+    </button>
+    <span class="fav-count">{{ recipe().favsCount }}</span>
+
+    <!-- Edit Action Button (visible when logged in / owner) -->
+    @if (isAuthenticated() && isOwner()) {
+      <button mat-icon-button (click)="onEdit($event)" aria-label="Edit recipe" title="Edit Recipe">
+        <mat-icon>edit</mat-icon>
+      </button>
+      <button mat-icon-button color="warn" 
+      (click)="onDelete($event)" 
+      aria-label="Delete recipe" title="Delete Recipe">
+        <mat-icon>delete</mat-icon>
+      </button>
+    }
+
+    <span class="spacer"></span>
+
+    <button mat-button color="primary" (click)="onCardClick()">VIEW RECIPE</button>
+  </mat-card-actions>
+</mat-card>

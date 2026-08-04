@@ -1,0 +1,153 @@
+<div class="view-recipe-container">
+  <!-- Top Navigation Header -->
+  <header class="top-bar">
+    <button mat-icon-button (click)="goBack()" aria-label="Go back">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <span class="spacer"></span>
+    @if (recipe()) {
+      <button mat-icon-button (click)="toggleFavorite()" class="fav-button">
+        <mat-icon [class.starred]="recipe()?.isStarred">
+          {{ recipe()?.isStarred ? 'star' : 'star_border' }}
+        </mat-icon>
+      </button>
+    }
+  </header>
+
+  @if (isLoading()) {
+    <div class="center-state">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>Loading recipe details...</p>
+    </div>
+  } @else if (!recipe()) {
+    <div class="center-state empty-state">
+      <mat-icon>no_food</mat-icon>
+      <h2>Recipe Not Found</h2>
+      <p>The recipe you are looking for doesn't exist or has been removed.</p>
+      <button mat-flat-button color="primary" (click)="goBack()">Back to Explore</button>
+    </div>
+  } @else {
+    <article class="recipe-content">
+      <!-- Title & Author Section -->
+      <section class="header-section">
+        <h1 class="recipe-title">{{ recipe()?.title }}</h1>
+        
+        <div class="author-bar">
+          <div class="author-info">
+            @if (recipe()?.author?.avatarUrl) {
+              <img [src]="recipe()?.author?.avatarUrl" [alt]="recipe()?.author?.name" class="author-avatar" />
+            } @else {
+              <div class="author-avatar-fallback">
+                {{ recipe()?.author?.name?.charAt(0) }}
+              </div>
+            }
+            <div class="author-details">
+              <span class="author-name">{{ recipe()?.author?.name }}</span>
+              <span class="author-handle">&#64;{{ recipe()?.author?.username }}</span>
+            </div>
+          </div>
+          <span class="created-date">{{ recipe()?.createdAt | date:'mediumDate' }}</span>
+        </div>
+      </section>
+
+      <!-- Hero Image -->
+      @if (recipe()?.imageUrl) {
+        <div class="hero-image-wrapper">
+          <img [src]="recipe()?.imageUrl" [alt]="recipe()?.title" class="hero-image" />
+        </div>
+      }
+
+      <!-- Quick Stats Banner -->
+      <section class="stats-banner">
+        <div class="stat-item">
+          <mat-icon>schedule</mat-icon>
+          <div class="stat-text">
+            <span class="stat-value">{{ (recipe()?.prepTimeMinutes || 0) + (recipe()?.cookTimeMinutes || 0) }} mins</span>
+            <span class="stat-label">Total Time</span>
+          </div>
+        </div>
+
+        <mat-divider [vertical]="true"></mat-divider>
+
+        <div class="stat-item">
+          <mat-icon>restaurant</mat-icon>
+          <div class="stat-text">
+            <span class="stat-value">{{ recipe()?.servings }}</span>
+            <span class="stat-label">Servings</span>
+          </div>
+        </div>
+
+        @if (recipe()?.caloriesPer100g) {
+          <mat-divider [vertical]="true"></mat-divider>
+          <div class="stat-item">
+            <mat-icon>local_fire_department</mat-icon>
+            <div class="stat-text">
+              <span class="stat-value">{{ recipe()?.caloriesPer100g }} kcal</span>
+              <span class="stat-label">per 100g</span>
+            </div>
+          </div>
+        }
+
+        @if (recipe()?.costPer100g) {
+          <mat-divider [vertical]="true"></mat-divider>
+          <div class="stat-item">
+            <mat-icon>attach_money</mat-icon>
+            <div class="stat-text">
+              <span class="stat-value">${{ recipe()?.costPer100g | number:'1.2-2' }}</span>
+              <span class="stat-label">per 100g</span>
+            </div>
+          </div>
+        }
+      </section>
+
+      <!-- Description -->
+      <section class="description-section">
+        <p>{{ recipe()?.description }}</p>
+      </section>
+
+      <mat-divider></mat-divider>
+
+      <!-- Recipe Parts / Ingredients & Instructions -->
+      <section class="recipe-parts-section">
+        <h2>Recipe Details</h2>
+
+        @for (part of recipe()?.parts; track part.id || $index) {
+          <div class="recipe-part-card">
+            @if (part.title) {
+              <h3 class="part-title">{{ part.title }}</h3>
+            }
+
+            <div class="part-grid">
+              <!-- Ingredients Column -->
+              @if (part.ingredients && part.ingredients.length > 0) {
+                <div class="ingredients-column">
+                  <h4><mat-icon>shopping_basket</mat-icon> Ingredients</h4>
+                  <ul class="ingredients-list">
+                    @for (ing of part.ingredients; track ing.id || $index) {
+                      <li>
+                        <span class="ing-name">{{ ing.name }}</span>
+                        <span class="ing-amount">{{ ing.amount }} {{ ing.unit }}</span>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <!-- Instructions Column -->
+              @if (part.instructions && part.instructions.length > 0) {
+                <div class="steps-column">
+                  <h4><mat-icon>format_list_numbered</mat-icon> Instructions</h4>
+                  <ol class="steps-list">
+                    @for (step of part.instructions; track $index) {
+                      <li>{{ step }}</li>
+                    }
+                  </ol>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </section>
+    </article>
+  }
+</div>

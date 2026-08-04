@@ -1,0 +1,50 @@
+<mat-toolbar color="primary" class="main-toolbar">
+  <div class="toolbar-brand" routerLink="/">
+    <mat-icon>restaurant_menu</mat-icon>
+    <span>Recipes</span>
+  </div>
+
+  <span class="toolbar-spacer"></span>
+
+  <!-- Quick Nav Links -->
+  <nav class="nav-links">
+
+    @if (!isAuthenticated()) {
+    <button mat-button routerLink="/explore" routerLinkActive="active-link">
+      <mat-icon>explore</mat-icon>
+      Explore
+    </button>
+    }
+    @if (isAuthenticated()) {
+      <!-- Authenticated User Menu / Options -->
+      <button mat-button routerLink="/personal" routerLinkActive="active-link">
+        <mat-icon>person</mat-icon>
+        {{ currentUser()?.name || 'Profile' }}
+      </button>
+
+      <button mat-button (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        Logout
+      </button>
+    } @else {
+      <!-- Guest Options -->
+      <button mat-button routerLink="/login" routerLinkActive="active-link">
+        <mat-icon>login</mat-icon>
+        Sign In
+      </button>
+      <button mat-raised-button color="accent" routerLink="/register">
+        Register
+      </button>
+    }
+  </nav>
+</mat-toolbar>
+
+<!-- Main Router Outlet -->
+<main class="main-content">
+  <router-outlet></router-outlet>
+</main>
+
+<!-- Footer -->
+<footer class="app-footer">
+  <p>&copy; 2026 Recipes Portfolio App. Built with Angular & Material.</p>
+</footer>

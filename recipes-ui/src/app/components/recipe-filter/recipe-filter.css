@@ -1,0 +1,86 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+@media (min-width: 840px) {
+  :host {
+    width: 280px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 5rem; /* Keeps sidebar fixed in view when scrolling through recipes */
+  }
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* Outer Border Container */
+.filter-card {
+  padding: 1.5rem;
+  border-radius: 12px;
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0; /* Subtle outer border */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); /* Soft container depth */
+}
+
+/* Header & Icon Alignment */
+.filter-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #f0f0f0; /* Separator line under header */
+}
+
+.filter-header mat-icon {
+  color: #3f51b5;
+}
+
+.filter-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.filter-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* Prep Time Slider Styling */
+.slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.slider-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #555;
+}
+
+.slider-value {
+  color: #3f51b5;
+  font-weight: 600;
+}
+
+/* Reset Button Container */
+.filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+

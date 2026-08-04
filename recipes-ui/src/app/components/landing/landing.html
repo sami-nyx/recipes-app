@@ -1,0 +1,65 @@
+<div class="landing-container">
+  <!-- Hero Section -->
+  <header class="hero">
+    <div class="hero-icon">
+      <mat-icon>restaurant_menu</mat-icon>
+    </div>
+    <h1>Welcome to {{ appName }}</h1>
+    <p class="subtitle">{{ tagline }}</p>
+  </header>
+
+  <!-- Action Cards Grid -->
+  <section class="actions-grid">
+    <!-- Explore Public Recipes -->
+    <mat-card class="action-card highlight">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>explore</mat-icon>
+        <mat-card-title>Explore</mat-card-title>
+        <mat-card-subtitle>Browse community recipes</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p>Search public recipes, view ingredient scaling, and find inspiration without logging in.</p>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button mat-flat-button color="primary" routerLink="/explore">
+          <mat-icon>search</mat-icon>
+          Explore Recipes
+        </button>
+      </mat-card-actions>
+    </mat-card>
+
+    <!-- Sign In Card -->
+    <mat-card class="action-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>login</mat-icon>
+        <mat-card-title>Sign In</mat-card-title>
+        <mat-card-subtitle>Access your recipe box</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p>Log in to access your saved recipes, personal notes, and custom meal collections.</p>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button mat-stroked-button color="primary" routerLink="/login">
+          Sign In
+        </button>
+      </mat-card-actions>
+    </mat-card>
+
+    <!-- Register Card -->
+    <mat-card class="action-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>person_add</mat-icon>
+        <mat-card-title>Create Account</mat-card-title>
+        <mat-card-subtitle>Join the platform</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p>Create a free account to start publishing, organizing, and saving your own recipes.</p>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button mat-button color="primary" routerLink="/register">
+          Register
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </section>
+</div>
