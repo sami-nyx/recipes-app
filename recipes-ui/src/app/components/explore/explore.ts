@@ -29,7 +29,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
   templateUrl: './explore.html',
   styleUrl: './explore.css'
 })
-export class ExploreComponent implements OnInit {
+export class Explore implements OnInit {
   private router = inject(Router);
   private recipeService = inject(RecipeService);
   private userService = inject(UserService); // <--- Inject UserService

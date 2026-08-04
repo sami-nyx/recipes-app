@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { Landing } from './components/landing/landing';
-import { ExploreComponent } from './components/explore/explore';
+import { Explore } from './components/explore/explore';
 import { ViewRecipeComponent } from './components/view-recipe-component/view-recipe-component';
 import { UserBioComponent } from './components/user-bio-component/user-bio-component';
 import { RegisterComponent } from './components/register-component/register-component';
@@ -9,7 +9,7 @@ import { RecipeFormComponent } from './components/recipe-form-component/recipe-f
 
 export const routes: Routes = [
   { path: '', component: Landing },
-  { path: 'explore', component: ExploreComponent },
+  { path: 'explore', component: Explore },
   { path: 'recipes/:id/edit', component: RecipeFormComponent },
   { path: 'recipes/create', component: RecipeFormComponent },
   { path: 'recipes/:id', component: ViewRecipeComponent },

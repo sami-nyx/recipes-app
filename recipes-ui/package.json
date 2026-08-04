@@ -2,11 +2,11 @@
   "name": "recipes-ui",
   "version": "0.0.0",
   "scripts": {
-    "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+  "ng": "ng",
+  "start": "ng serve",
+  "build": "ng build",
+  "config:env": "node scripts/set-env.js",
+  "build:prod": "npm run config:env && ng build --configuration production"
   },
   "private": true,
   "packageManager": "npm@12.0.1",

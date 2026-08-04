@@ -1,8 +1,7 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
-import { AuthorData } from './author-data.service';
-
+import { environment } from '../../environments/environment.development';
 export interface RegisterUserDto {
   name: string;
   username: string;
@@ -29,7 +28,7 @@ export interface AuthResponse {
   providedIn: 'root'
 })
 export class UserService {
-  private readonly apiUrl = 'http://localhost:5000/api/users';
+  private readonly apiUrl = `${environment.fullApiUrl}/users`;
   private readonly TOKEN_KEY = 'recipes_jwt_token';
   private readonly USER_KEY = 'recipes_user_data';
 
@@ -47,6 +46,9 @@ export class UserService {
 
 
   login(credentials: any): Observable<AuthResponse> {
+
+  console.log(environment.fullApiUrl)
+  console.log("apiURL:", this.apiUrl)
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
       tap((response) => this.handleAuthentication(response))
     );

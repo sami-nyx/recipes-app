@@ -1,8 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
-import { delay } from 'rxjs/operators';
-import { UserService } from './user-service';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment.development';
 
 export interface AuthorData {
   id: string;
@@ -21,9 +20,8 @@ export interface AuthorData {
 export class AuthorDataService {
 
   constructor(private http: HttpClient) {}
-  private userService = inject(UserService);
 
-  private readonly apiUrl = 'http://localhost:5000/api/users';
+  private readonly apiUrl = `${environment.fullApiUrl}/users`;
   private mockAuthors: AuthorData[] = [
     {
       id: 'usr-1',

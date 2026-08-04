@@ -4,13 +4,14 @@ import { map, tap, catchError } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { Recipe } from '../models/recipes.model';
 import { Author } from '../models/author.model';
+import { environment } from '../../environments/environment.development';
 
 @Injectable({
   providedIn: 'root'
 })
 export class RecipeService {
   private http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5000/api/recipes';
+  private readonly apiUrl = `${environment.fullApiUrl}/recipes`;
 
   // Signal holding the master list of recipes initialized with mock data
   private recipesSignal = signal<Recipe[]>(MOCK_RECIPES);
