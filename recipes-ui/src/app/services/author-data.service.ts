@@ -27,6 +27,7 @@ export class AuthorDataService {
       id: 'usr-1',
       name: 'Sarah Jenkins',
       username: 'chef_sarah',
+      
       avatarUrl: 'https://i.pravatar.cc/150?img=47',
       bio: 'Passionate home cook, pastry lover, and healthy recipe creator.',
       recipesCount: 24,
