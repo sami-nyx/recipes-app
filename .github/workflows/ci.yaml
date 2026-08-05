@@ -6,6 +6,7 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  jobs:
-    unit-tests:
-      uses: ./.github/workflows/unit-tests.yml
+  
+jobs:
+  unit-tests:
+    uses: ./.github/workflows/unit-tests.yml
