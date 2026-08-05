@@ -3,7 +3,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 
-from models.user import db, bcrypt, User  # Import models so db.create_all() registers them
+from models.user import db, bcrypt, User  
 from models.recipe import Recipe
 from views.user_views import user_bp
 from views.recipe_views import recipes_bp
