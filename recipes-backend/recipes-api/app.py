@@ -5,7 +5,7 @@ from flask_jwt_extended import JWTManager
 
 from models.user import db, bcrypt
 from views.user_views import user_bp
-from views.recipe_views import recipes_bp   #axaxa
+from views.recipe_views import recipes_bp   #axaxaxx
 
 def create_app():
     app = Flask(__name__)
