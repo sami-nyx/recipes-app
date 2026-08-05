@@ -58,9 +58,9 @@ jobs:
 
       - name: Run Pytest
         env:
-          PYTHONPATH: .
-          DATABASE_URL: "sqlite:///:memory:"
-          SQLALCHEMY_DATABASE_URI: "sqlite:///:memory:"
+          # PYTHONPATH: .
+          # DATABASE_URL: "sqlite:///:memory:"
+          # SQLALCHEMY_DATABASE_URI: "sqlite:///:memory:"
           FLASK_ENV: "testing"
         run: |
           python -m unittest discover -s tests
