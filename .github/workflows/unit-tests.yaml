@@ -85,7 +85,7 @@ jobs:
         with:
           node-version: '24.18.0'
           cache: 'npm'
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: recipes-ui/package-lock.json
 
       - name: Install Dependencies
         run: |
