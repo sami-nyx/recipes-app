@@ -1,11 +1,11 @@
 import os
 from flask import Flask
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager  # <--- Added JWT import
+from flask_jwt_extended import JWTManager 
 
 from models.user import db, bcrypt
 from views.user_views import user_bp
-from views.recipe_views import recipes_bp   # <--- Import recipe_bp
+from views.recipe_views import recipes_bp   
 
 def create_app():
     app = Flask(__name__)
