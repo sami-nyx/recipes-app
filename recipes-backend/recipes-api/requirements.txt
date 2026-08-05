@@ -5,5 +5,3 @@ Flask-CORS
 psycopg2-binary
 PyJWT
 flask-jwt-extended
-pytest
-pytest-flask
