@@ -5,3 +5,4 @@ Flask-CORS
 psycopg2-binary
 PyJWT
 flask-jwt-extended
+gunicorn

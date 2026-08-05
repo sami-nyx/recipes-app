@@ -62,17 +62,11 @@ readonly currentUser = this.userService.currentUser;
           this.isLoading.set(false);
         },
         error: (err) => {
-          let data =this.authorService.getMockAuthorById(_authorId)
-          if(data  ){
-
-          this.userData.set(data);
-          this.isLoading.set(false);
-
-          }else{
+          
           console.error(err);
           this.hasError.set(true);
           this.isLoading.set(false);
-          }
+          
         }
       });
     });

@@ -1,0 +1,39 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+ENV/
+
+# Python Bytecode & Cache
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environment Variables & Secrets
+.env
+*.env
+
+# Git & Version Control
+.git/
+.gitignore
+
+# Testing & Coverage Tools
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker / Compose Files
+docker-compose*.yaml
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# Documentation & Markdown
+README.md

@@ -34,7 +34,6 @@
       </div>
     } @else {
       <div class="recipe-grid">
-        @for (recipe of filteredRecipes(); track recipe.id) {
           <app-recipe-card
   *ngFor="let recipe of filteredRecipes()"
   [recipe]="recipe"
@@ -42,7 +41,7 @@
   (authorClick)="viewAuthor($event)"
   (deleteClick)="deleteRecipe($event)">
 </app-recipe-card>
-        }
+        
       </div>
     }
   </main>

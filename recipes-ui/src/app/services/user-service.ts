@@ -6,7 +6,7 @@ export interface RegisterUserDto {
   name: string;
   username: string;
   email: string;
-  password?: string; // Optional if you are using OIDC/OAuth later
+  password?: string; 
   bio?: string;
   avatarUrl?: string;
 }

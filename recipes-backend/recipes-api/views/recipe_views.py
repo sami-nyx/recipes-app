@@ -28,6 +28,7 @@ def get_recipes():
 @recipes_bp.route('/<string:recipe_id>', methods=['PUT'])
 @jwt_required()
 def update_recipe(recipe_id):
+    
     data = request.get_json() or {}
     current_user_id = get_jwt_identity()
     
