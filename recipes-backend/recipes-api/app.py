@@ -50,31 +50,6 @@ def create_app(config_override=None):
     
     jwt = JWTManager(app)
 
-    # --- JWT DEBUG CALLBACKS ---
-    @jwt.invalid_token_loader
-    def custom_invalid_token_callback(error_string):
-        print(f"--> [JWT ERROR] Invalid Token: {error_string}")
-        return jsonify({
-            "message": "Signature verification failed or token malformed. Please log out and log in again.",
-            "error": error_string
-        }), 422
-
-    @jwt.unauthorized_loader
-    def custom_missing_token_callback(error_string):
-        print(f"--> [JWT ERROR] Missing Authorization Header: {error_string}")
-        return jsonify({
-            "message": "Request is missing the Authorization header (Bearer <token>).",
-            "error": error_string
-        }), 422
-
-    @jwt.expired_token_loader
-    def custom_expired_token_callback(jwt_header, jwt_payload):
-        print(f"--> [JWT ERROR] Expired Token for subject: {jwt_payload.get('sub')}")
-        return jsonify({
-            "message": "Token has expired. Please log in again.",
-            "error": "token_expired"
-        }), 401
-
     # Register Blueprints / Views
     app.register_blueprint(user_bp)
     app.register_blueprint(recipes_bp)
