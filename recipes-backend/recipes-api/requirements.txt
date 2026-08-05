@@ -1,7 +1,9 @@
-Flask 
-Flask-SQLAlchemy 
-Flask-Bcrypt 
+Flask
+Flask-SQLAlchemy
+Flask-Bcrypt
 Flask-CORS
 psycopg2-binary
 PyJWT
 flask-jwt-extended
+pytest
+pytest-flask
