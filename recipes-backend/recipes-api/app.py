@@ -30,13 +30,14 @@ def create_app(config_override=None):
     )
 
     # PostgreSQL DB Config
-    db_user = os.getenv('DB_USER_NAME', 'recipes_user')
-    db_pass = os.getenv('DB_PASSWORD', 'recipes_password')
-    db_name = os.getenv('DB_NAME', 'recipes_db')
-    db_host = os.getenv('DB_HOST', 'postgres')  # Defaults to 'postgres' service name in Docker Compose
-    db_port = os.getenv('DB_PORT', '5432')
+    db_scheme = os.getenv('DB_SCHEME', 'postgresql+psycopg2')
+    db_user   = os.getenv('DB_USER_NAME', 'recipes_user')
+    db_pass   = os.getenv('DB_PASSWORD', 'recipes_password')
+    db_host   = os.getenv('DB_HOST', 'localhost')
+    db_port   = os.getenv('DB_PORT', '5432')
+    db_name   = os.getenv('DB_NAME', 'recipes_db')
 
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}'
+    app.config['SQLALCHEMY_DATABASE_URI'] = f"{db_scheme}://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Apply configuration overrides (e.g., in-memory SQLite for testing)
