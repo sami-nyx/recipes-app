@@ -5,19 +5,20 @@ from flask_jwt_extended import JWTManager
 
 from models.user import db, bcrypt
 from views.user_views import user_bp
-from views.recipe_views import recipes_bp   #axaxaxxxx
+from views.recipe_views import recipes_bp
 
-def create_app():
+
+def create_app(config_override=None):
     app = Flask(__name__)
     
     # Secret Keys & App Config
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'super-secret-dev-key-123')
-    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', app.config['SECRET_KEY']) # <--- Added JWT secret key
+    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', app.config['SECRET_KEY'])
 
     # Enable CORS for Angular frontend
     CORS(app, resources={r"/api/*": {"origins": "http://localhost:4200"}})
 
-    # DB Config
+    # Default PostgreSQL DB Config
     db_user = os.getenv('DB_USER_NAME', 'recipes_user')
     db_pass = os.getenv('DB_PASSWORD', 'recipes_password')
     db_name = os.getenv('DB_NAME', 'recipes_db')
@@ -27,14 +28,18 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # Initialize Extensions
+    # Apply configuration overrides (e.g., in-memory SQLite for testing)
+    if config_override:
+        app.config.update(config_override)
+
+    # Initialize Extensions AFTER config is finalized
     db.init_app(app)
     bcrypt.init_app(app)
-    JWTManager(app) # <--- Initialize JWT extension
+    JWTManager(app)
 
     # Register Blueprints / Views
     app.register_blueprint(user_bp)
-    app.register_blueprint(recipes_bp) # <--- Register recipes_bp here!
+    app.register_blueprint(recipes_bp)
 
     return app
 
