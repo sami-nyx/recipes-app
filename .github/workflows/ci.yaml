@@ -8,6 +8,9 @@ on:
     branches: [ "main" ]
 jobs:
   unit-tests:
+    permissions:
+      id-token: write  # 👈 REQUIRED for GitHub OIDC tokens
+      contents: read
     uses: ./.github/workflows/unit-tests.yaml
   integration-tests: 
     needs: [ 'unit-tests' ]
