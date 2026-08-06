@@ -4,6 +4,6 @@ on:
 
 jobs:
   test1:
-    runs-on: ubuntu-24.04
+    runs-on: ec2_sef_hosted_runner.2.336.0
     steps:
     - run: echo hello

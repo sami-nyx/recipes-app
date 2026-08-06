@@ -68,6 +68,7 @@ deleteRecipe(id: string): Observable<void> {
    * Create a new recipe and append it to local signal cache
    */
   createRecipe(recipe: Partial<Recipe>): Observable<Recipe> {
+    console.log()
     return this.http.post<Recipe>(`${this.apiUrl}/create`, recipe).pipe(
       tap((newRecipe: Recipe) => {
         this.recipesSignal.update(current => [newRecipe, ...current]);
