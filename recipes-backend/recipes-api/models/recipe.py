@@ -21,7 +21,6 @@ class Recipe(db.Model):
     favs_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-    # Foreign key to user/author
     author_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
     author = db.relationship('User', backref=db.backref('recipes', lazy=True))
 
