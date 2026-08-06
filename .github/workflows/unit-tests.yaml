@@ -14,7 +14,8 @@ jobs:
         uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b #v6.2.0
         with:
           role-to-assume: arn:aws:iam::889867978066:role/protfolio_recipes_ecr_push_role
-          aws-region: ap-south-1 
+          aws-region: ap-south-1  
+          disable-retry: true 
 
       - name: Checkout Code Metadata
         uses: actions/checkout@v4
