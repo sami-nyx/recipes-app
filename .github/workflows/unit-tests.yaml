@@ -4,7 +4,7 @@ on:
 
 jobs:
   changes:
-    runs-on: self-hosted
+    runs-on: ubuntu-22.04
     permissions:
       id-token: write  # 👈 REQUIRED for GitHub OIDC tokens
       contents: read
