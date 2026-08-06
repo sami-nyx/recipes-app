@@ -6,15 +6,9 @@ on:
     branches: [ "main" ]
   pull_request: 
     branches: [ "main" ]
-  
-  
 jobs:
   unit-tests:
-
     uses: ./.github/workflows/unit-tests.yaml
-
-
-
   integration-tests: 
     needs: [ 'unit-tests' ]
     uses: ./.github/workflows/integration-tests.yaml
