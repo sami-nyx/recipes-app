@@ -5,6 +5,9 @@ on:
 jobs:
   changes:
     runs-on: self-hosted
+    permissions:
+      id-token: write  # 👈 REQUIRED for GitHub OIDC tokens
+      contents: read
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
