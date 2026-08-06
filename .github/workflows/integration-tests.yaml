@@ -30,3 +30,4 @@ jobs:
         role-to-assume: arn:aws:iam::889867978066:role/"protfolio_recipes_ecr_push_role"
         aws-region: ap-south-1 
         disable-retry: true
+    - run: echo done
