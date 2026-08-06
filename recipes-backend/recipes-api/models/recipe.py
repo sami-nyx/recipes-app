@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from models.user import db  # Importing shared db instance from user.py
-
+from models.user import db 
 def generate_uuid():
     return str(uuid.uuid4())
 
