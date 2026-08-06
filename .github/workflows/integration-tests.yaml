@@ -4,6 +4,6 @@ on:
 
 jobs:
   test1:
-    runs-on: ec2_sef_hosted_runner.2.336.0
+    runs-on: self-hosted
     steps:
     - run: echo hello
