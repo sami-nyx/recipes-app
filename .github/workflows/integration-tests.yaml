@@ -13,5 +13,18 @@ jobs:
         sparse-checkout: |               
           recipes-backend
           test
-    - name: List directory 
-      run: ls -la
+
+    - name: Start Docker Compose
+      run: docker compose up -d --build
+
+    - name: List Containers
+      run: docker ps
+
+    # - name: Run Tests
+    #   run: |
+    #     # Add your test execution command here
+    #     # e.g., curl http://localhost:8080/health || exit 1
+
+    - name: Stop services
+      if: always()
+      run: docker compose down -v
