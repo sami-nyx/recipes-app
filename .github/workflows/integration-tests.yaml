@@ -13,18 +13,15 @@ jobs:
         sparse-checkout: |               
           recipes-backend
           test
+    - name: Run Integration Tests
+      run: |
+        docker compose up \
+          --abort-on-container-exit \
+          --exit-code-from integration-tests
 
-    - name: Start Docker Compose
-      run: docker compose up -d --build
-
-    - name: List Containers
-      run: docker ps
-
-    # - name: Run Tests
-    #   run: |
-    #     # Add your test execution command here
-    #     # e.g., curl http://localhost:8080/health || exit 1
-
+    - name: Teardown Environment
+      if: always()
+      run: docker compose down -v
     - name: Stop services
       if: always()
       run: docker compose down -v

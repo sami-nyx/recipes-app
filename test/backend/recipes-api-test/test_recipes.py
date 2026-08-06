@@ -42,4 +42,4 @@ def test_recipe_lifecycle(base_url, api_session, auth_headers):
 
 def test_unauthorized_recipe_creation(base_url, api_session):
     res = api_session.post(f"{base_url}/api/recipes/create", json={"title": "Unauthorized"})
-    assert res.status_code == 422
+    assert res.status_code == 401

@@ -38,6 +38,23 @@ services:
     depends_on:
       postgres:
         condition: service_healthy  
-
+    
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;\
+             urllib.request.urlopen('http://localhost:5000/system/health')\" || exit 1"]
+      interval: 5s
+      timeout: 30s
+      retries: 5
+      start_period: 5s
+  
+  integration-tests:
+    build:
+      context: .
+      dockerfile: test/backend/Dockerfile
+    environment:
+      - API_BASE_URL=http://recipes-api:5000
+    depends_on:
+      recipes-api:
+        condition: service_healthy  
 volumes:
   postgres_data:

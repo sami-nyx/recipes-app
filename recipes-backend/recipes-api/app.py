@@ -7,6 +7,7 @@ from models.user import db, bcrypt, User
 from models.recipe import Recipe
 from views.user_views import user_bp
 from views.recipe_views import recipes_bp
+from views.system_views import system_bp
 
 
 def create_app(config_override=None):
@@ -53,6 +54,7 @@ def create_app(config_override=None):
     # Register Blueprints / Views
     app.register_blueprint(user_bp)
     app.register_blueprint(recipes_bp)
+    app.register_blueprint(system_bp)
 
     return app
 
