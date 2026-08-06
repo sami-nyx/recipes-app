@@ -7,7 +7,6 @@ class BaseTestCase(unittest.TestCase):
 
     def setUp(self):
         """Executed before each test."""
-        # Pass the config dictionary directly so SQLAlchemy binds to SQLite immediately
         self.app = create_app({
             'TESTING': True,
             'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
