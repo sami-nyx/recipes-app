@@ -1,0 +1,16 @@
+name: CI/CD pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  
+  
+jobs:
+  unit-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: T1
+        run: echo hello world
