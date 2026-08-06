@@ -1,15 +1,11 @@
 name: CI/CD pipeline
-
 on:
   push:
     branches: [ "main" ]
-  
-  
 jobs:
   unit-tests:
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     steps:
       - name: T1
         run: echo hello world
-        #lskdsakd
-        #saf
+        #1:02sd
