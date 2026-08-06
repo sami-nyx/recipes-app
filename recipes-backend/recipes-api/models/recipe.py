@@ -26,6 +26,7 @@ class Recipe(db.Model):
     # Relationship to Recipe Parts (cascade delete cleans up parts when recipe is deleted)
     parts = db.relationship('RecipePart', backref='recipe', cascade="all, delete-orphan", lazy=True)
 
+
     def to_dict(self):
         return {
             'id': self.id,
