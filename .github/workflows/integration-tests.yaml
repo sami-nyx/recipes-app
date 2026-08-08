@@ -63,10 +63,10 @@ jobs:
 #==============================================================================================
     - name: Tag the entry tracker image
       run: |
-        
+        docker images
         #tag images
-        docker tag local/protfolio-recipes:latest $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        docker tag local/protfolio-recipes:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        docker tag recipes-recipes-api:latest    $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker tag recipes-recipes-api:latest    $ECR_REGISTRY/$ECR_REPOSITORY:latest
         
         #push images
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
