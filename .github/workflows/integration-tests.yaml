@@ -4,7 +4,7 @@ on:
 
 jobs:
   integration-test:
-    runs-on: self-hosted
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout Code
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
@@ -23,15 +23,15 @@ jobs:
       if: always()
       run: docker compose down -v
     
-    - name: Configure AWS Credentials via OIDC for ECR image push
-      uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b #v6.2.0
-      with:
-        role-to-assume: arn:aws:iam::889867978066:role/protfolio_recipes_ecr_push_role
-        aws-region: ap-south-1 
+    # - name: Configure AWS Credentials via OIDC for ECR image push
+    #   uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b #v6.2.0
+    #   with:
+    #     role-to-assume: arn:aws:iam::889867978066:role/protfolio_recipes_ecr_push_role
+    #     aws-region: ap-south-1 
 
 
 
         
-        disable-retry: true
+    #     disable-retry: true
         
     - run: echo done
