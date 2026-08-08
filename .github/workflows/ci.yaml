@@ -10,6 +10,10 @@ jobs:
   # unit-tests:
   print-path:
     runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write  
+      contents: read
     steps:
       - name: Print Trigger Path
         run: |
@@ -36,9 +40,6 @@ jobs:
           role-to-assume: arn:aws:iam::889867978066:role/protfolio_recipes_ecr_push_role
           aws-region: ap-south-1 
 
-  #   permissions:
-  #     id-token: write  
-  #     contents: read
   #   uses: ./.github/workflows/unit-tests.yaml
   # integration-tests: 
   #   needs: [ 'unit-tests' ]
