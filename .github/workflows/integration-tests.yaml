@@ -5,6 +5,9 @@ on:
 jobs:
   integration-test:
     runs-on: ubuntu-22.04
+    permissions:
+      id-token: write  
+      contents: read
     steps:
     - name: Checkout Code
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
@@ -23,11 +26,56 @@ jobs:
       if: always()
       run: docker compose down -v
     
+    - name: Resolve next tag
+      id: resolve-tag
+      uses: ./.github/actions/resolve-next-tag
+      with:
+        major-minor-patch: 'patch'
+    
+    - name: Tag commit
+      run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag $IMAGE_TAG 
+          git push origin $IMAGE_TAG 
+      env:
+        IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
+
     - name: Configure AWS Credentials via OIDC for ECR image push
       uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b #v6.2.0
       with:
         role-to-assume: arn:aws:iam::889867978066:role/protfolio_recipes_ecr_push_role
         aws-region: ap-south-1 
         disable-retry: true
+
+#==============================================================================================
+#                                         Login to ECR
+#==============================================================================================
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
         
-    - run: echo done
+
+
+#==============================================================================================
+#                                         Tag and push  to ECR
+#==============================================================================================
+    - name: Tag the entry tracker image
+      run: |
+        
+        #tag images
+        docker tag local/protfolio-recipes:latest $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker tag local/protfolio-recipes:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        
+        #push images
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+        echo "New tag created: $$IMAGE_TAG
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: protfolio-recipes
+        IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
+
+
+    - run: echo done 
