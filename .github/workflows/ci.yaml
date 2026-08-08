@@ -38,7 +38,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v6.1.0 #e7f100cf4c008499ea8adda475de1042d6975c7b #v6.2.0
         with:
           role-to-assume: arn:aws:iam::889867978066:role/gh-actions-ecr-push-role
-          # aws-region: ap-south-1 
+          aws-region: ap-south-1 
           disable-retry: true
   #   uses: ./.github/workflows/unit-tests.yaml
   # integration-tests: 
