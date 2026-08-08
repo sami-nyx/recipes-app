@@ -27,6 +27,7 @@ class Recipe(db.Model):
     parts = db.relationship('RecipePart', backref='recipe', cascade="all, delete-orphan", lazy=True)
 
 
+
     def to_dict(self):
         return {
             'id': self.id,
