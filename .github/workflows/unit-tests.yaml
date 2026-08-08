@@ -6,21 +6,12 @@ jobs:
   changes:
     runs-on: ubuntu-22.04
     permissions:
-      id-token: write  # 👈 REQUIRED for GitHub OIDC tokens
+      id-token: write
       contents: read
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
-      # Lightweight checkout: fetching only the Git history metadata needed for diffing, not the files themselves.
-      - name: Configure AWS Credentials via OIDC for ECR image push
-        uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b #v6.2.0
-        with:
-          role-to-assume: arn:aws:iam::889867978066:role/protfolio_recipes_ecr_push_role
-          aws-region: ap-south-1  
-          role-skip-session-tagging: true
-          disable-retry: true 
-
       - name: Checkout Code Metadata
         uses: actions/checkout@v4
         with:
