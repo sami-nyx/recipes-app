@@ -16,6 +16,7 @@ jobs:
         sparse-checkout: |               
           recipes-backend
           test
+          .github
     - name: Run Integration Tests
       run: |
         docker compose up --build\
