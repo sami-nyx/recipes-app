@@ -15,7 +15,7 @@ jobs:
   integration-tests:
     permissions:
       id-token: write  
-      contents: read
+      contents: write
     needs: [ 'unit-tests' ]
     uses: ./.github/workflows/integration-tests.yaml
     
