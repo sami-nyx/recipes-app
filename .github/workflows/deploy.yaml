@@ -56,7 +56,10 @@ jobs:
           role-to-assume: arn:aws:iam::889867978066:role/gh-actions-s3-push-role
           aws-region: ap-south-1
 
-      - name: push to s3
+      - name: build ui for prod
         run: |
-          pwd
           npx ng build --configuration production
+      
+      - name: deploy ui for prod
+        run: |
+          aws s3 sync dist/recipes-ui/browser s3://recipes-ui-static-hosting --delete

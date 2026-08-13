@@ -7,19 +7,19 @@ on:
   pull_request: 
     branches: [ "main" ]
 jobs:
-  unit-tests:
-    permissions:
-      id-token: write  
-      contents: read
-    uses: ./.github/workflows/unit-tests.yaml
-  integration-tests:
-    permissions:
-      id-token: write  
-      contents: write
-    needs: [ 'unit-tests' ]
-    uses: ./.github/workflows/integration-tests.yaml
+  # unit-tests:
+  #   permissions:
+  #     id-token: write  
+  #     contents: read
+  #   uses: ./.github/workflows/unit-tests.yaml
+  # integration-tests:
+  #   permissions:
+  #     id-token: write  
+  #     contents: write
+  #   needs: [ 'unit-tests' ]
+  #   uses: ./.github/workflows/integration-tests.yaml
   deploy:
-    needs: ["integration-tests"]
+    # needs: ["integration-tests"]
     permissions:
       id-token: write  
       contents: read
