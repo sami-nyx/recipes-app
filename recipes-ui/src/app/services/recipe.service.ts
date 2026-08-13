@@ -4,7 +4,7 @@ import { map, tap, catchError } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { Recipe } from '../models/recipes.model';
 import { Author } from '../models/author.model';
-import { environment } from '../../environments/environment.development';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -22,6 +22,7 @@ public readonly recipes = this.recipesSignal.asReadonly();
  * Fetches recipes from backend API and updates the reactive signal
  */
 getRecipes(): Observable<Recipe[]> {
+  console.log(this.apiUrl)
   return this.http.get<Recipe[]>(this.apiUrl).pipe(
     tap((dbRecipes: Recipe[]) => {
       // Update the signal with ONLY backend recipes

@@ -3,7 +3,7 @@ on:
   workflow_call:
 
 jobs:
-  deploy:
+  deploy-web:
     runs-on: ubuntu-22.04
     permissions:
       id-token: write
@@ -24,3 +24,39 @@ jobs:
       - name: Deploy to EKS
         run: |
           kubectl get pods
+  depoly-ui:  
+    runs-on:  ubuntu-22.04
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        working-directory: recipes-ui/
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+        with:
+          sparse-checkout: |
+            recipes-ui/
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 #v7.0.0
+        with:
+          node-version: '24.18.0'
+          cache: 'npm'
+          cache-dependency-path: recipes-ui/package-lock.json
+
+      - name: Install Dependencies
+        run: |
+          npm ci
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::889867978066:role/gh-actions-s3-push-role
+          aws-region: ap-south-1
+
+      - name: push to s3
+        run: |
+          pwd
+          npx ng build --configuration production
