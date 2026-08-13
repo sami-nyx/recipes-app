@@ -19,6 +19,7 @@ jobs:
     needs: [ 'unit-tests' ]
     uses: ./.github/workflows/integration-tests.yaml
   deploy:
+    needs: ["integration-tests"]
     permissions:
       id-token: write  
       contents: read
