@@ -63,3 +63,11 @@ jobs:
       - name: deploy ui for prod
         run: |
           aws s3 sync dist/recipes-ui/browser s3://recipes-ui-static-hosting --delete
+      
+      - name: Invalidate CloudFront Cache
+        env:
+          DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "$DISTRIBUTION_ID" \
+            --paths "/*"
