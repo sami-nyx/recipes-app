@@ -35,7 +35,7 @@ jobs:
           yq --version
       
       - name: print
-        run: whtch yq 
+        run: which yq 
         # cat ./apps/recipes-api/values.yaml
 
 #======================================================================================================================
