@@ -23,7 +23,7 @@ jobs:
     needs: ["integration-tests"]
     permissions:
       id-token: write  
-      contents: read
+      contents: write
     uses: ./.github/workflows/deploy.yaml
     secrets: inherit
     with:
