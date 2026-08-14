@@ -8,7 +8,12 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    steps:
+    steps:        
+      - name: echo secret
+        run: echo "$SECRET"
+        env:
+          SECRET: "${{ secrets.RECIPES_GITOPS_READ_WRITE_PAT }}"
+  
       - name: Checkout GitOps repository
         uses: actions/checkout@v6
         with:
