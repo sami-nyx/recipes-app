@@ -19,8 +19,25 @@ jobs:
         with:
           repository: sami-nyx/recipes-gitops
           token: ${{ secrets.RECIPES_GITOPS_READ_WRITE_PAT }}
+      
+      - name: Ensure yq is installed
+        run: |
+          if ! command -v yq &> /dev/null; then
+            echo "yq not found. Installing..."
+            # Download the latest binary from GitHub releases
+            sudo wget https://github.com -O /usr/local/bin/yq
+            sudo chmod +x /usr/local/bin/yq
+          else
+            echo "yq is already installed at $(command -v yq)"
+          fi
+          
+          # Print the version to confirm it works
+          yq --version
+      
       - name: print
-        run: cat ./apps/recipes-api/values.yaml
+        run: whtch yq 
+        # cat ./apps/recipes-api/values.yaml
+
 #======================================================================================================================
 # Deploy UI
 #======================================================================================================================
