@@ -1,13 +1,18 @@
 name: Deploy
 on:
   workflow_call:
-
+    inputs:
+      IMAGE_TAG:
+        required: true
+        type: string
+        description: "The Docker image tag to deploy"
 jobs:
   deploy-web:
     runs-on: ubuntu-22.04
     permissions:
       id-token: write
       contents: read
+    
     steps:        
       - name: echo secret
         run: echo "$SECRET"
