@@ -40,7 +40,7 @@ jobs:
       
       - name: update image tag in values.yaml
         run: |
-          yq -i ".recipesApi.imageTag = ${{ inputs.IMAGE_TAG }}" ./apps/recipes-api/values.yaml
+          yq -i '.recipesApi.imageTag = "${{ inputs.IMAGE_TAG }}"' ./apps/recipes-api/values.yaml
       - name: cat new values.yaml
         run: ./apps/recipes-api/values.yaml
 #======================================================================================================================
