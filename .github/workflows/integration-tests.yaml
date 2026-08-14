@@ -23,15 +23,15 @@ jobs:
           test
           .github
 
-    # - name: Run Integration Tests
-    #   run: |
-    #     docker compose up --build\
-    #       --abort-on-container-exit \
-    #       --exit-code-from integration-tests
+    - name: Run Integration Tests
+      run: |
+        docker compose up --build\
+          --abort-on-container-exit \
+          --exit-code-from integration-tests
 
-    # - name: Teardown Environment
-    #   if: always()
-    #   run: docker compose down -v
+    - name: Teardown Environment
+      if: always()
+      run: docker compose down -v
     
     - name: Resolve next tag
       id: resolve-tag
