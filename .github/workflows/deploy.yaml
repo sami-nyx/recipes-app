@@ -14,10 +14,9 @@ jobs:
       contents: read
     
     steps:        
-      - name: echo secret
-        run: echo "$SECRET"
-        env:
-          SECRET: "${{ secrets.RECIPES_GITOPS_READ_WRITE_PAT }}"
+      - name: Debug Received Image Tag
+        run: |
+          echo "The received IMAGE_TAG is: ${{ inputs.IMAGE_TAG }}"
   
       - name: Checkout GitOps repository
         uses: actions/checkout@v6
