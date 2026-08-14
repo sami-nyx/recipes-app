@@ -37,12 +37,12 @@ jobs:
           
           # Print the version to confirm it works
           yq --version
-      - name: Print current tag
+      
+      - name: update image tag in values.yaml
         run: |
-          echo "The tag that triggered this workflow is: ${{ github.ref_name }}"
-
-        # cat ./apps/recipes-api/values.yaml
-
+           run yq -i ".recipesApi.imageTag = ${{ inputs.IMAGE_TAG }}" ./apps/recipes-api/values.yaml
+      - name: cat new values.yaml
+        run: ./apps/recipes-api/values.yaml
 #======================================================================================================================
 # Deploy UI
 #======================================================================================================================
