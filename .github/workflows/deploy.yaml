@@ -33,9 +33,10 @@ jobs:
           
           # Print the version to confirm it works
           yq --version
-      
-      - name: print
-        run: which yq 
+      - name: Print current tag
+        run: |
+          echo "The tag that triggered this workflow is: ${{ github.ref_name }}"
+
         # cat ./apps/recipes-api/values.yaml
 
 #======================================================================================================================
