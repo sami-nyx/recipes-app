@@ -20,7 +20,7 @@ jobs:
           repository: sami-nyx/recipes-gitops
           token: ${{ secrets.RECIPES_GITOPS_READ_WRITE_PAT }}
       - name: print
-        run: ls
+        run: cat ./apps/recipes-api/values.yaml
 #======================================================================================================================
 # Deploy UI
 #======================================================================================================================
