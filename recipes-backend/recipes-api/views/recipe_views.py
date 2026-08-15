@@ -22,7 +22,6 @@ def get_recipes():
         print(f"Error fetching recipes: {e}")
         return jsonify([]), 200
 
-
 # --- UPDATE / EDIT RECIPE ROUTE ---
 @recipes_bp.route('/<string:recipe_id>', methods=['PUT'])
 @jwt_required()
