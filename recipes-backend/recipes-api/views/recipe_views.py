@@ -13,7 +13,6 @@ def create_recipe():
     response_body, status_code = RecipeController.create_recipe(data, current_user_id)
     return jsonify(response_body), status_code
 
-
 @recipes_bp.route('', methods=['GET'])
 def get_recipes():
     try:
