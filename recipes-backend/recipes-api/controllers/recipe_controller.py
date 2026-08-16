@@ -1,5 +1,6 @@
 from models.recipe import Recipe, RecipePart, Ingredient
 from models.user import db
+from app_logginig.logger import app_logger  # Import our structured logger
 
 class RecipeController:
 
@@ -7,11 +8,17 @@ class RecipeController:
     def get_recipes(cls, args=None):
         """Fetch all recipes ordered by creation date (newest first)."""
         try:
-            # Query all recipes ordered by creation date descending
             recipes = Recipe.query.order_by(Recipe.created_at.desc()).all()
+            app_logger.info(
+                "Fetched all recipes list",
+                extra={"props": {"action": "GET_RECIPES_LIST", "count": len(recipes), "status": "SUCCESS"}}
+            )
             return [recipe.to_dict() for recipe in recipes], 200
         except Exception as e:
-            print(f"Error fetching recipes in controller: {e}")
+            app_logger.error(
+                f"Error fetching recipes: {str(e)}",
+                extra={"props": {"action": "GET_RECIPES_LIST", "status": "FAILED", "error": str(e)}}
+            )
             return {"error": "Failed to fetch recipes"}, 500
 
     @classmethod
@@ -20,10 +27,22 @@ class RecipeController:
         try:
             recipe = Recipe.query.get(recipe_id)
             if not recipe:
+                app_logger.warning(
+                    f"Recipe not found: {recipe_id}",
+                    extra={"props": {"action": "GET_RECIPE", "recipe_id": recipe_id, "status": "NOT_FOUND"}}
+                )
                 return {"error": "Recipe not found"}, 404
+            
+            app_logger.info(
+                f"Fetched recipe {recipe_id}",
+                extra={"props": {"action": "GET_RECIPE", "recipe_id": recipe_id, "status": "SUCCESS"}}
+            )
             return recipe.to_dict(), 200
         except Exception as e:
-            print(f"Error fetching recipe {recipe_id}: {e}")
+            app_logger.error(
+                f"Error fetching recipe {recipe_id}: {str(e)}",
+                extra={"props": {"action": "GET_RECIPE", "recipe_id": recipe_id, "status": "FAILED", "error": str(e)}}
+            )
             return {"error": "Failed to fetch recipe"}, 500
 
     @classmethod
@@ -42,7 +61,6 @@ class RecipeController:
                 author_id=current_user_id
             )
 
-            # Handle parts & ingredients if present in payload
             for part_data in data.get('parts', []):
                 part = RecipePart(
                     title=part_data.get('title', 'Main Assembly'),
@@ -62,11 +80,33 @@ class RecipeController:
             db.session.add(new_recipe)
             db.session.commit()
 
+            app_logger.info(
+                f"Recipe created successfully: {new_recipe.id}",
+                extra={
+                    "props": {
+                        "action": "CREATE_RECIPE",
+                        "user_id": current_user_id,
+                        "recipe_id": new_recipe.id,
+                        "title": new_recipe.title,
+                        "status": "SUCCESS"
+                    }
+                }
+            )
             return new_recipe.to_dict(), 201
 
         except Exception as e:
             db.session.rollback()
-            print(f"Error creating recipe: {e}")
+            app_logger.error(
+                f"Failed to create recipe: {str(e)}",
+                extra={
+                    "props": {
+                        "action": "CREATE_RECIPE",
+                        "user_id": current_user_id,
+                        "status": "FAILED",
+                        "error": str(e)
+                    }
+                }
+            )
             return {"error": "Failed to create recipe"}, 500
 
     @classmethod
@@ -76,6 +116,10 @@ class RecipeController:
             return {"error": "Recipe not found"}, 404
 
         if str(recipe.author_id) != str(current_user_id):
+            app_logger.warning(
+                f"Unauthorized update attempt on recipe {recipe_id} by user {current_user_id}",
+                extra={"props": {"action": "UPDATE_RECIPE", "recipe_id": recipe_id, "user_id": current_user_id, "status": "UNAUTHORIZED"}}
+            )
             return {"error": "Unauthorized to update this recipe"}, 403
 
         try:
@@ -91,13 +135,11 @@ class RecipeController:
 
             if 'parts' in data:
                 recipe.parts.clear()
-                
                 for part_data in data['parts']:
                     part = RecipePart(
                         title=part_data.get('title', 'Main Assembly'),
                         instructions=part_data.get('instructions', [])
                     )
-                    
                     for ing_data in part_data.get('ingredients', []):
                         ing = Ingredient(
                             name=ing_data.get('name'),
@@ -107,36 +149,51 @@ class RecipeController:
                             calories_per_100g=ing_data.get('caloriesPer100g')
                         )
                         part.ingredients.append(ing)
-                        
                     recipe.parts.append(part)
 
             db.session.commit()
+            
+            app_logger.info(
+                f"Recipe updated successfully: {recipe_id}",
+                extra={"props": {"action": "UPDATE_RECIPE", "recipe_id": recipe_id, "user_id": current_user_id, "status": "SUCCESS"}}
+            )
             return recipe.to_dict(), 200
 
         except Exception as e:
             db.session.rollback()
-            print(f"Error updating recipe {recipe_id}: {e}")
+            app_logger.error(
+                f"Failed to update recipe {recipe_id}: {str(e)}",
+                extra={"props": {"action": "UPDATE_RECIPE", "recipe_id": recipe_id, "user_id": current_user_id, "status": "FAILED", "error": str(e)}}
+            )
             return {"error": "Failed to update recipe"}, 500
-
 
     @classmethod
     def delete_recipe(cls, recipe_id, current_user_id):
-        # 1. Fetch recipe using modern SQLAlchemy 2.0 syntax
         recipe = db.session.get(Recipe, recipe_id)
         if not recipe:
             return {"error": "Recipe not found"}, 404
 
-        # 2. Authorization check: Ensure only the author can delete
         if str(recipe.author_id) != str(current_user_id):
+            app_logger.warning(
+                f"Unauthorized delete attempt on recipe {recipe_id} by user {current_user_id}",
+                extra={"props": {"action": "DELETE_RECIPE", "recipe_id": recipe_id, "user_id": current_user_id, "status": "UNAUTHORIZED"}}
+            )
             return {"error": "Unauthorized to delete this recipe"}, 403
 
         try:
-            # 3. Delete from DB (cascade rules will automatically clean up parts and ingredients)
             db.session.delete(recipe)
             db.session.commit()
+            
+            app_logger.info(
+                f"Recipe deleted successfully: {recipe_id}",
+                extra={"props": {"action": "DELETE_RECIPE", "recipe_id": recipe_id, "user_id": current_user_id, "status": "SUCCESS"}}
+            )
             return {"message": "Recipe deleted successfully"}, 200
 
         except Exception as e:
             db.session.rollback()
-            print(f"Error deleting recipe {recipe_id}: {e}")
+            app_logger.error(
+                f"Failed to delete recipe {recipe_id}: {str(e)}",
+                extra={"props": {"action": "DELETE_RECIPE", "recipe_id": recipe_id, "user_id": current_user_id, "status": "FAILED", "error": str(e)}}
+            )
             return {"error": "Failed to delete recipe"}, 500

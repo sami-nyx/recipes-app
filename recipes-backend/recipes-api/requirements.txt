@@ -5,4 +5,4 @@ Flask-CORS
 psycopg2-binary
 PyJWT
 flask-jwt-extended
-gunicorn
+prometheus-flask-exporter==0.23.0

@@ -5,25 +5,29 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# 3. Set working directory inside the container
+# 3. Default environment variables for ports (can be overridden at runtime)
+ENV PORT=5002 \
+    METRICS_PORT=6000
+
+# 4. Set working directory inside the container
 WORKDIR /app
 
-# 4. Install system dependencies if compiling packages (e.g., libpq for postgres)
+# 5. Install system dependencies if compiling packages (e.g., libpq for postgres)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt-get/lists/*
 
-# 5. Copy requirements first to leverage Docker layer caching
+# 6. Copy requirements first to leverage Docker layer caching
 COPY requirements.txt .
 
-# 6. Install Python dependencies
+# 7. Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 7. Copy application code
+# 8. Copy application code
 COPY . .
 
-# 8. Expose Flask port
+# 9. Expose the API port
 EXPOSE 5000
 
-# 9. Run with Gunicorn or Flask WSGI server
-CMD ["python", "/app/app.py"]
+# 10. Run the application
+CMD ["python", "app.py"]
