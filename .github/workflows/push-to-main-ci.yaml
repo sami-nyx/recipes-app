@@ -23,7 +23,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Resolve image tag
+      - name: Resolve image tag 
         id: resolve-tag
         uses: ./.github/actions/resolve-next-tag
         with:
