@@ -1,0 +1,56 @@
+name: 'Resolve next tag'
+description: 'Resolves next tag based on the tags existing in the corresponding repo'
+
+inputs:
+  major-minor-patch:
+    description: 'type of next tag'
+    default: 'patch'
+    required: false
+
+outputs:
+  NEXT_TAG:
+    description: 'resolved next tag'
+    value: ${{ steps.main.outputs.NEXT_TAG }} # Map the step output to the action output
+runs:
+  using: 'composite'
+  steps:
+    - name: "Resove tag"
+      id: "main"
+      run: |
+
+          # 1. Find the latest tag. If no tags exist yet, default to v1.0.0
+          git fetch --tags --force
+          LATEST_TAG=$(git tag -l "v*.*.*" --sort=-v:refname | head -n 1)
+          
+          # If no tags exist yet on the remote, default to v1.0.0
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG="v1.0.0"
+          fi
+          echo "Current latest tag in repo: $LATEST_TAG"
+          
+          # 2. Extract the numbers (strips the 'v' first)
+          VERSION=${LATEST_TAG#v}
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          PATCH=$(echo $VERSION | cut -d. -f3)
+          
+          # 3. Calculate the next patch number safely in Bash
+            TYPE="${{ inputs.major-minor-patch }}"
+        
+            if [ "$TYPE" = "major" ]; then
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+            elif [ "$TYPE" = "minor" ]; then
+              MINOR=$((MINOR + 1))
+              PATCH=0
+            else
+              # Default fallback to patch
+              PATCH=$((PATCH + 1))
+             fi
+          NEXT_TAG="v$MAJOR.$MINOR.$PATCH"
+          echo "Calculated new tag: $NEXT_TAG"  
+                  
+          # 4. Set the output for the step
+          echo "NEXT_TAG=$NEXT_TAG" >> $GITHUB_OUTPUT
+      shell: bash

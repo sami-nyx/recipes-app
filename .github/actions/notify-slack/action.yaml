@@ -1,0 +1,45 @@
+name: "Slack Notify"
+description: "Send a standardized Slack notification"
+
+inputs:
+  status:
+    description: "success or failure"
+    required: true
+
+  title:
+    description: "Notification title"
+    required: true
+
+  message:
+    description: "Optional additional message"
+    required: false
+    default: ""
+
+  webhook:
+    description: "Slack webhook URL"
+    required: true
+
+runs:
+  using: "composite"
+
+  steps:
+    - name: Send Slack notification
+      uses: slackapi/slack-github-action@v3.0.3
+      with:
+        webhook: ${{ inputs.webhook }}
+        webhook-type: incoming-webhook
+        payload: |
+          text: "${{ inputs.title }}"
+          blocks:
+            - type: "section"
+              text:
+                type: "mrkdwn"
+                text: |
+                  ${{ inputs.status == 'success' && ':white_check_mark:' || ':x:' }} *${{ inputs.title }}*
+
+                  ${{ inputs.message }}
+
+                  *Repository:* `${{ github.repository }}`
+                  *Branch:* `${{ github.head_ref || github.ref_name }}`
+                  *Actor:* `${{ github.actor }}`
+                  *Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View GitHub Actions>

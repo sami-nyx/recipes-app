@@ -4,13 +4,14 @@ on:
 
 jobs:
   changes:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
+    permissions:
+      id-token: write
+      contents: read
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
-      # Lightweight checkout: fetching only the Git history metadata needed for diffing, not the files themselves.
-      
       - name: Checkout Code Metadata
         uses: actions/checkout@v4
         with:
