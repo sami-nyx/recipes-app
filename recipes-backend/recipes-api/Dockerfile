@@ -5,8 +5,6 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# 3. Default environment variables for ports (can be overridden at runtime)
-ENV PORT=5000
 # 4. Set working directory inside the container
 WORKDIR /app
 
