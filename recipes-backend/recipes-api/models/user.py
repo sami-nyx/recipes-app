@@ -1,10 +1,7 @@
 import uuid
-import jwt
-from datetime import datetime, timedelta, timezone
-from flask import current_app
+from datetime import datetime, timezone
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
-
 db = SQLAlchemy()
 bcrypt = Bcrypt()
 
@@ -24,18 +21,7 @@ class User(db.Model):
 
     def check_password(self, password: str) -> bool:
         return bcrypt.check_password_hash(self.password_hash, password)
-    def generate_token(self, expires_in_hours=24) -> str:
-        """Generates a signed JWT access token for this user."""
-        payload = {
-            'sub': self.id,
-            'username': self.username,
-            'email': self.email,
-            'iat': datetime.now(timezone.utc),
-            'exp': datetime.now(timezone.utc) + timedelta(hours=expires_in_hours)
-        }
-        secret = current_app.config.get('SECRET_KEY', 'dev-secret-key')
-        return jwt.encode(payload, secret, algorithm='HS256')
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -45,3 +31,30 @@ class User(db.Model):
             'avatarUrl': self.avatar_url,
             'bio': self.bio
         }
+
+class TokenBlocklist(db.Model):
+    __tablename__ = 'token_blocklist'
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    jti = db.Column(
+        db.String(36),
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
+    user_id = db.Column(
+        db.String(36),
+        nullable=False,
+        index=True
+    )
+
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc)
+    )

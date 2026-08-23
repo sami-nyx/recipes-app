@@ -5,14 +5,25 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from prometheus_flask_exporter import PrometheusMetrics
 
-from models.user import db, bcrypt
+from models.user import db, bcrypt, TokenBlocklist
 from views.user_views import user_bp
 from views.recipe_views import recipes_bp
 from views.system_views import system_bp
 
-
 metrics = None
+jwt = JWTManager()
 
+@jwt.token_in_blocklist_loader
+def check_if_token_revoked(jwt_header, jwt_payload):
+    jti = jwt_payload['jti']
+
+    token = db.session.scalar(
+        db.select(TokenBlocklist).where(
+            TokenBlocklist.jti == jti
+        )
+    )
+
+    return token is not None
 
 def get_required_env(name: str) -> str:
     value = os.getenv(name)
@@ -80,7 +91,7 @@ def init_extensions(app):
     )
     db.init_app(app)
     bcrypt.init_app(app)
-    JWTManager(app)
+    jwt.init_app(app)
 
     if not app.config.get('TESTING', False):
         metrics = PrometheusMetrics(app)

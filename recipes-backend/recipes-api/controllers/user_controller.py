@@ -1,5 +1,10 @@
-from models.user import db, User
-from app_logginig.logger import app_logger  # Import our structured logger
+from datetime import datetime, timezone
+
+from flask_jwt_extended import create_access_token
+
+from models.user import db, User, TokenBlocklist
+from app_logginig.logger import app_logger
+
 
 class UserController:
 
@@ -48,7 +53,12 @@ class UserController:
             db.session.add(user)
             db.session.commit()
 
-            token = user.generate_token()
+            token = create_access_token(
+                    identity=user.id,
+                    additional_claims={
+                        "username": user.username
+                    }
+                )
 
             app_logger.info(
                 f"User registered successfully: {user.id}",
@@ -69,12 +79,18 @@ class UserController:
 
         except Exception as e:
             db.session.rollback()
-            app_logger.error(
-                f"User registration database error: {str(e)}",
-                extra={"props": {"action": "REGISTER_USER", "status": "FAILED", "error": str(e)}}
-            )
-            return {'message': 'Database error occurred', 'details': str(e)}, 500
-    
+            app_logger.exception(
+                    "User registration database error",
+                    extra={
+                        "props": {
+                            "action": "REGISTER_USER",
+                            "status": "FAILED"
+                        }
+                    }
+                )
+            return {
+                'message': 'An internal error occurred'
+            }, 500
     @staticmethod
     def login_user(data: dict):
         identifier = data.get('usernameOrEmail')
@@ -98,7 +114,12 @@ class UserController:
             )
             return {'message': 'Invalid username/email or password'}, 401
 
-        token = user.generate_token()
+        token = create_access_token(
+                identity=user.id,
+                additional_claims={
+                    "username": user.username
+                }
+            )
 
         app_logger.info(
             f"User logged in successfully: {user.id}",
@@ -116,7 +137,315 @@ class UserController:
             'user': user.to_dict(),
             'accessToken': token
         }, 200
+    @staticmethod
+    def logout_user(user_id, jti):
+        try:
+            revoked_token = TokenBlocklist(
+                jti=jti,
+                user_id=user_id
+            )
 
+            db.session.add(revoked_token)
+            db.session.commit()
+
+            app_logger.info(
+                "User logged out successfully",
+                extra={
+                    "props": {
+                        "action": "LOGOUT",
+                        "user_id": user_id,
+                        "status": "SUCCESS"
+                    }
+                }
+            )
+
+            return {
+                'message': 'Logged out successfully'
+            }, 200
+
+        except Exception:
+            db.session.rollback()
+
+            app_logger.exception(
+                "User logout failed",
+                extra={
+                    "props": {
+                        "action": "LOGOUT",
+                        "user_id": user_id,
+                        "status": "FAILED"
+                    }
+                }
+            )
+
+            return {
+                'message': 'An internal error occurred'
+            }, 500
+
+    @staticmethod
+    def update_user(
+        user_id,
+        authenticated_user_id,
+        data
+    ):
+        # ========================================================
+        # Authorization
+        # ========================================================
+
+        if authenticated_user_id != user_id:
+            app_logger.warning(
+                "Unauthorized user update attempt",
+                extra={
+                    "props": {
+                        "action": "UPDATE_USER",
+                        "authenticated_user_id": authenticated_user_id,
+                        "target_user_id": user_id,
+                        "status": "FORBIDDEN"
+                    }
+                }
+            )
+
+            return {
+                'message': 'You are not allowed to modify this user'
+            }, 403
+
+        # ========================================================
+        # Find user
+        # ========================================================
+
+        user = db.session.get(User, user_id)
+
+        if not user:
+            return {
+                'message': 'User not found'
+            }, 404
+
+        # ========================================================
+        # Immutable fields
+        # ========================================================
+
+        forbidden_fields = {
+            'username',
+            'email',
+            'password'
+        }
+
+        attempted_forbidden_fields = (
+            forbidden_fields.intersection(data.keys())
+        )
+
+        if attempted_forbidden_fields:
+            return {
+                'message': 'One or more fields cannot be modified',
+                'fields': sorted(attempted_forbidden_fields)
+            }, 400
+
+        # ========================================================
+        # Allowed fields
+        # ========================================================
+
+        allowed_fields = {
+            'name',
+            'avatarUrl',
+            'bio'
+        }
+
+        provided_fields = allowed_fields.intersection(data.keys())
+
+        if not provided_fields:
+            return {
+                'message': 'No editable fields were provided'
+            }, 400
+
+        # ========================================================
+        # Name
+        # ========================================================
+
+        if 'name' in data:
+            name = data['name']
+
+            if not isinstance(name, str):
+                return {
+                    'message': 'Name must be a string'
+                }, 400
+
+            name = name.strip()
+
+            if not name:
+                return {
+                    'message': 'Name cannot be empty'
+                }, 400
+
+            if len(name) > 100:
+                return {
+                    'message': 'Name cannot exceed 100 characters'
+                }, 400
+
+            user.name = name
+
+        # ========================================================
+        # Avatar
+        # ========================================================
+
+        if 'avatarUrl' in data:
+            avatar_url = data['avatarUrl']
+
+            if avatar_url is not None:
+                if not isinstance(avatar_url, str):
+                    return {
+                        'message': 'avatarUrl must be a string or null'
+                    }, 400
+
+                avatar_url = avatar_url.strip()
+
+                if len(avatar_url) > 255:
+                    return {
+                        'message':
+                            'avatarUrl cannot exceed 255 characters'
+                    }, 400
+
+            user.avatar_url = avatar_url
+
+        # ========================================================
+        # Bio
+        # ========================================================
+
+        if 'bio' in data:
+            bio = data['bio']
+
+            if bio is not None:
+                if not isinstance(bio, str):
+                    return {
+                        'message': 'Bio must be a string or null'
+                    }, 400
+
+                bio = bio.strip()
+
+            user.bio = bio
+
+        # ========================================================
+        # Save
+        # ========================================================
+
+        try:
+            db.session.commit()
+
+            app_logger.info(
+                "User profile updated successfully",
+                extra={
+                    "props": {
+                        "action": "UPDATE_USER",
+                        "user_id": user.id,
+                        "status": "SUCCESS"
+                    }
+                }
+            )
+
+            return {
+                'message': 'User updated successfully',
+                'user': user.to_dict()
+            }, 200
+
+        except Exception:
+            db.session.rollback()
+
+            app_logger.exception(
+                "User update failed",
+                extra={
+                    "props": {
+                        "action": "UPDATE_USER",
+                        "user_id": user_id,
+                        "status": "FAILED"
+                    }
+                }
+            )
+
+            return {
+                'message': 'An internal error occurred'
+            }, 500
+
+    @staticmethod
+    def delete_user(
+        user_id,
+        authenticated_user_id,
+        jti
+    ):
+        # ========================================================
+        # Authorization
+        # ========================================================
+
+        if authenticated_user_id != user_id:
+            app_logger.warning(
+                "Unauthorized user deletion attempt",
+                extra={
+                    "props": {
+                        "action": "DELETE_USER",
+                        "authenticated_user_id": authenticated_user_id,
+                        "target_user_id": user_id,
+                        "status": "FORBIDDEN"
+                    }
+                }
+            )
+
+            return {
+                'message': 'You are not allowed to delete this user'
+            }, 403
+
+        # ========================================================
+        # Find user
+        # ========================================================
+
+        user = db.session.get(User, user_id)
+
+        if not user:
+            return {
+                'message': 'User not found'
+            }, 404
+
+        try:
+            # Revoke the JWT used to delete the account
+            revoked_token = TokenBlocklist(
+                jti=jti,
+                user_id=user_id
+            )
+
+            db.session.add(revoked_token)
+
+            db.session.delete(user)
+
+            db.session.commit()
+
+            app_logger.info(
+                "User account deleted successfully",
+                extra={
+                    "props": {
+                        "action": "DELETE_USER",
+                        "user_id": user_id,
+                        "status": "SUCCESS"
+                    }
+                }
+            )
+
+            return {
+                'message': 'User deleted successfully'
+            }, 200
+
+        except Exception:
+            db.session.rollback()
+
+            app_logger.exception(
+                "User deletion failed",
+                extra={
+                    "props": {
+                        "action": "DELETE_USER",
+                        "user_id": user_id,
+                        "status": "FAILED"
+                    }
+                }
+            )
+
+            return {
+                'message': 'An internal error occurred'
+            }, 500        
     @staticmethod
     def get_author_by_id(author_id):
         user = User.query.get(author_id)
