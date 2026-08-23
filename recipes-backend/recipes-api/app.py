@@ -94,12 +94,13 @@ def init_extensions(app):
     jwt.init_app(app)
 
     if not app.config.get('TESTING', False):
-        metrics = PrometheusMetrics(app)
 
+        app_version = get_required_env('APP_VERSION')
+        metrics = PrometheusMetrics(app)
         metrics.info(
-            'recipe_app_info',
-            'Recipe Application Metrics',
-            version='1.0.0'
+            'recipes_api_info',
+            'Recipes API Metrics',
+             version=app_version
         )
 
 
