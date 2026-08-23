@@ -1,17 +1,28 @@
 import unittest
+
 from app import create_app
 from models.user import db
 from models.recipe import Recipe, RecipePart, Ingredient
+
 
 class BaseTestCase(unittest.TestCase):
 
     def setUp(self):
         """Executed before each test."""
+
         self.app = create_app({
             'TESTING': True,
+
             'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
-            'JWT_SECRET_KEY': 'super-secret-test-key-must-be-at-least-32-bytes-long!',
-            'SECRET_KEY': 'super-secret-test-key-must-be-at-least-32-bytes-long!'
+            'SQLALCHEMY_TRACK_MODIFICATIONS': False,
+
+            'JWT_SECRET_KEY':
+                'super-secret-test-key-must-be-at-least-32-bytes-long!',
+
+            'SECRET_KEY':
+                'super-secret-test-key-must-be-at-least-32-bytes-long!',
+
+            'CORS_ORIGIN': 'http://localhost:4200'
         })
 
         self.client = self.app.test_client()
@@ -21,6 +32,7 @@ class BaseTestCase(unittest.TestCase):
 
     def tearDown(self):
         """Executed after each test."""
+
         with self.app.app_context():
             db.session.remove()
             db.drop_all()
