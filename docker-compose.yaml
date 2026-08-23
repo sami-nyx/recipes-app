@@ -37,18 +37,18 @@ services:
 
     environment:
       FLASK_ENV: ${FLASK_ENV}
-
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      PORT: ${PORT}
+      APP_VERSION: ${APP_VERSION}
+      CORS_ORIGIN: ${CORS_ORIGIN}
       DB_NAME: ${DB_NAME}
       DB_USER_NAME: ${DB_USER_NAME}
       DB_PASSWORD: ${DB_PASSWORD}
-
-      # Docker DNS resolves "postgres" to the DB container.
       DB_HOST: postgres
+      DB_SCHEME: ${DB_SCHEME}
       DB_PORT: 5432
 
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
-      SECRET_KEY: ${SECRET_KEY}
-
+      
     depends_on:
       postgres:
         condition: service_healthy
@@ -91,8 +91,8 @@ services:
 
   integration-tests:
     build:
-      context: .
-      dockerfile: test/backend/Dockerfile
+      context: ./test/backend/
+      dockerfile: Dockerfile
 
     environment:
       API_BASE_URL: http://recipes-api:5000
