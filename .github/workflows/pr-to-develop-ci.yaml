@@ -45,7 +45,6 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-
       - name: Run Super-Linter
         uses: super-linter/super-linter@v8.7.0
         env:
@@ -60,12 +59,7 @@ jobs:
           VALIDATE_GITHUB_ACTIONS: true
           VALIDATE_BASH: true
 
-          VALIDATE_BIOME_FORMAT: false
-          VALIDATE_BIOME_LINT: false
-          VALIDATE_CHECKOV: false
-          VALIDATE_TRIVY: false
-          VALIDATE_JSCPD: false
-          VALIDATE_PRE_COMMIT: false
+          SAVE_SUPER_LINTER_SUMMARY: true
   unit-tests:
     uses: ./.github/workflows/unit-tests.yaml
 
