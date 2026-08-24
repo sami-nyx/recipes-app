@@ -61,6 +61,7 @@ jobs:
       - unit-tests
     uses: ./.github/workflows/integration-tests.yaml
 
+    secrets: inherit  
   notify:
     name: Notify Slack - Finished
     runs-on: ubuntu-latest
