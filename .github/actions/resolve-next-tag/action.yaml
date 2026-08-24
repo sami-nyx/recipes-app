@@ -26,7 +26,10 @@ runs:
 
         LATEST_TAG="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' \
           --sort=-v:refname | head -n 1)"
-
+        if [[ ! "$LATEST_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "Invalid semantic version tag: $LATEST_TAG"
+          exit 1
+        fi
         TYPE="${{ inputs.major-minor-patch }}"
 
         case "$TYPE" in

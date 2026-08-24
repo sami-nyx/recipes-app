@@ -1,9 +1,9 @@
 name: "Slack Notify"
-description: "Send a standardized Slack notification"
+description: "Send a standardized Slack workflow notification"
 
 inputs:
   status:
-    description: "success or failure"
+    description: "started, success, failure, or cancelled"
     required: true
 
   title:
@@ -16,26 +16,54 @@ inputs:
     default: ""
 
   webhook:
-    description: "Slack webhook URL"
+    description: "Slack incoming webhook URL"
     required: true
 
 runs:
   using: "composite"
 
   steps:
+    - name: Resolve notification style
+      id: style
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        case "${{ inputs.status }}" in
+          started)
+            ICON=":rocket:"
+            ;;
+          success)
+            ICON=":white_check_mark:"
+            ;;
+          failure)
+            ICON=":x:"
+            ;;
+          cancelled)
+            ICON=":warning:"
+            ;;
+          *)
+            echo "Invalid Slack notification status: ${{ inputs.status }}"
+            exit 1
+            ;;
+        esac
+
+        echo "icon=$ICON" >> "$GITHUB_OUTPUT"
+
     - name: Send Slack notification
-      uses: slackapi/slack-github-action@v3.0.3
+      uses: slackapi/slack-github-action@v4.0.0
       with:
         webhook: ${{ inputs.webhook }}
         webhook-type: incoming-webhook
         payload: |
           text: "${{ inputs.title }}"
+
           blocks:
             - type: "section"
               text:
                 type: "mrkdwn"
                 text: |
-                  ${{ inputs.status == 'success' && ':white_check_mark:' || ':x:' }} *${{ inputs.title }}*
+                  ${{ steps.style.outputs.icon }} *${{ inputs.title }}*
 
                   ${{ inputs.message }}
 
