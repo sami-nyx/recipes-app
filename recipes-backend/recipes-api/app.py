@@ -63,7 +63,9 @@ def configure_app(app):
 
     # Server
     app.config['PORT'] = int(get_required_env('PORT'))
-
+    app.config['AUTO_CREATE_DB'] = (
+        os.getenv('AUTO_CREATE_DB', 'false').lower() == 'true'
+    )
     # CORS
     app.config['CORS_ORIGIN'] = get_required_env('CORS_ORIGIN')
 def init_extensions(app):
