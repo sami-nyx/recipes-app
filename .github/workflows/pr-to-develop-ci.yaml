@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
 
       - name: Notify Slack
-        uses: ./.github/actions/slack-notify
+        uses: ./.github/actions/notify-slack
         with:
           status: started
           title: "PR validation started"
@@ -92,7 +92,7 @@ jobs:
           fi
 
       - name: Notify Slack
-        uses: ./.github/actions/slack-notify
+        uses: ./.github/actions/notify-slack
         with:
           status: ${{ steps.result.outputs.status }}
           title: ${{ steps.result.outputs.title }}
