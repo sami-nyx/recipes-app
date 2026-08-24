@@ -63,9 +63,7 @@ def configure_app(app):
 
     # Server
     app.config['PORT'] = int(get_required_env('PORT'))
-    app.config['AUTO_CREATE_DB'] = (
-        os.getenv('AUTO_CREATE_DB', 'false').lower() == 'true'
-    )
+
     # CORS
     app.config['CORS_ORIGIN'] = get_required_env('CORS_ORIGIN')
 def init_extensions(app):
@@ -112,19 +110,19 @@ def register_blueprints(app):
     app.register_blueprint(system_bp)
 
 def create_app(config_override=None):
+    """Application Factory Pattern."""
+
     app = Flask(__name__)
 
     if config_override:
+        # Test/custom configuration supplied explicitly
         app.config.update(config_override)
     else:
+        # Normal production/development startup
         configure_app(app)
 
     init_extensions(app)
     register_blueprints(app)
-
-    if app.config.get("AUTO_CREATE_DB", False):
-        with app.app_context():
-            db.create_all()
 
     return app
 
