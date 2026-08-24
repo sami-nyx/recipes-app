@@ -47,7 +47,7 @@ services:
       DB_HOST: postgres
       DB_SCHEME: ${DB_SCHEME}
       DB_PORT: 5432
-
+      AUTO_CREATE_DB: "true"
       
     depends_on:
       postgres:
