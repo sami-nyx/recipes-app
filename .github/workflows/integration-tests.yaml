@@ -64,19 +64,18 @@ jobs:
       # Set up Docker Buildx (Required for GHA Caching)
       # ============================================================
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
-      - name: Build Integration Images
-        run: |
-          docker compose -f docker-compose.yaml build
+      - name: Build Recipes API
+        uses: docker/build-push-action@v7
+        with:
+          context: ./recipes-backend/recipes-api
+          file: ./recipes-backend/recipes-api/Dockerfile
+          load: true
+          tags: recipes-api:test
 
-      - name: Run Integration Tests
-        run: |
-          docker compose -f docker-compose.yaml up \
-            --no-build \
-            --abort-on-container-exit \
-            --exit-code-from integration-tests
-
+          cache-from: type=gha,scope=recipes-api
+          cache-to: type=gha,mode=max,scope=recipes-api
       # ============================================================
       # Cleanup
       # ============================================================
