@@ -55,7 +55,7 @@ jobs:
 
       - name: Run Integration Tests
         run: |
-          mkdir .//recipes-ui/dist/recipes-ui/browser
+          mkdir ./recipes-ui/dist/recipes-ui/browser
           docker compose -f docker-compose.test.yaml up \
             --build \
             --abort-on-container-exit \
