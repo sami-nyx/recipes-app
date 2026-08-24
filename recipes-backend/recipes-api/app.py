@@ -44,6 +44,7 @@ def configure_app(app):
     app.config['JWT_SECRET_KEY'] = jwt_secret
     app.config['SECRET_KEY'] = jwt_secret
 
+    app.config['FLASK_ENV'] = get_required_env('FLASK_ENV')
     # Database
     db_scheme = get_required_env('DB_SCHEME')
     db_user = get_required_env('DB_USER_NAME')
@@ -51,7 +52,7 @@ def configure_app(app):
     db_host = get_required_env('DB_HOST')
     db_port = get_required_env('DB_PORT')
     db_name = get_required_env('DB_NAME')
-
+    
     app.config['SQLALCHEMY_DATABASE_URI'] = (
         f"{db_scheme}://"
         f"{db_user}:{db_pass}@"
@@ -123,7 +124,9 @@ def create_app(config_override=None):
 
     init_extensions(app)
     register_blueprints(app)
-
+    if app.config.get('FLASK_ENV').lower() == 'development' or app.config.get('FLASK_ENV').lower() == 'test' :
+        with app.app_context():
+            db.create_all()
     return app
 
 
