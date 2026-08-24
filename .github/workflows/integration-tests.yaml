@@ -1,92 +1,72 @@
-name: Integration Test
+name: Integration Tests
+
 on:
   workflow_call:
-      # outputs:
-      #   resolved_tag:
-      #     description: "The tag resolved by this workflow"
-          # value: ${{ jobs.integration-test.outputs.resolved_tag }}
+
 jobs:
   integration-test:
+    name: Integration Tests
     runs-on: ubuntu-22.04
+
+    env:
+      # ============================================================
+      # Application
+      # ============================================================
+
+      FLASK_ENV: ${{ vars.FLASK_ENV }}
+      PORT: ${{ vars.PORT }}
+      APP_VERSION: ${{ vars.APP_VERSION }}
+      CORS_ORIGIN: ${{ vars.CORS_ORIGIN }}
+
+      # ============================================================
+      # Database
+      # ============================================================
+
+      DB_NAME: ${{ vars.DB_NAME }}
+      DB_USER_NAME: ${{ vars.DB_USER_NAME }}
+      DB_SCHEME: ${{ vars.DB_SCHEME }}
+
+      # ============================================================
+      # Secrets
+      # ============================================================
+
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
-      with:
-        clean: true                      
-        sparse-checkout: |               
-          recipes-backend
-          test
-          .github
-          nginx
+      # ============================================================
+      # Checkout
+      # ============================================================
 
-    - name: Run Integration Tests
-      run: |
-        docker compose -f docker-compose.test.yaml up \
-          --build \
-          --abort-on-container-exit \
-          --exit-code-from integration-tests
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          clean: true
+          sparse-checkout: |
+            recipes-backend
+            test
+            .github
+            nginx
+            docker-compose.test.yaml
 
-    - name: Teardown Environment
-      if: always()
-      run: |
-        docker compose -f docker-compose.test.yaml down -v
+      # ============================================================
+      # Integration Tests
+      # ============================================================
 
-    - name: Teardown Environment
-      if: always()
-      run: docker compose down -v
-    
-#     - name: Resolve next tag
-#       id: resolve-tag
-#       uses: ./.github/actions/resolve-next-tag
-#       with:
-#         major-minor-patch: 'patch'
-    
-#     - name: Tag commit
-#       id: tag_commit
-#       run: |
-#           git config user.name "github-actions[bot]"
-#           git config user.email "github-actions[bot]@users.noreply.github.com"
-#           git tag $IMAGE_TAG 
-#           git push origin $IMAGE_TAG 
-#           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
-#       env:
-#         IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
+      - name: Run Integration Tests
+        run: |
+          docker compose -f docker-compose.test.yaml up \
+            --build \
+            --abort-on-container-exit \
+            --exit-code-from integration-tests
 
-#     - name: Configure AWS Credentials via OIDC for ECR image push
-#       uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b #v6.2.0
-#       with:
-#         role-to-assume: arn:aws:iam::889867978066:role/protfolio_recipes_ecr_push_role
-#         aws-region: ap-south-1 
-#         disable-retry: true
+      # ============================================================
+      # Cleanup
+      # ============================================================
 
-# #==============================================================================================
-# #                                         Login to ECR
-# #==============================================================================================
-#     - name: Login to Amazon ECR
-#       id: login-ecr
-#       uses: aws-actions/amazon-ecr-login@v2
-        
-
-
-# #==============================================================================================
-# #                                         Tag and push  to ECR
-# #==============================================================================================
-#     - name: Tag the entry tracker image
-#       run: |
-#         docker images
-#         #tag images
-#         docker tag protfolio-recipes-recipes-api:latest    $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-#         docker tag protfolio-recipes-recipes-api:latest    $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        
-#         #push images
-#         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-#         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-
-#         echo "New tag created: $IMAGE_TAG"
-#       env:
-#         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-#         ECR_REPOSITORY: protfolio-recipes
-#         IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
-
-
-#     - run: echo done 
+      - name: Teardown Environment
+        if: ${{ always() }}
+        run: |
+          docker compose -f docker-compose.test.yaml down \
+            --volumes \
+            --remove-orphans
