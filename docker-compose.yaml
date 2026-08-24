@@ -31,7 +31,7 @@ services:
     build:
       context: ./recipes-backend/recipes-api
       dockerfile: Dockerfile
-
+    command: ["python", "app.py"]
     container_name: recipes_api
     restart: always
 
