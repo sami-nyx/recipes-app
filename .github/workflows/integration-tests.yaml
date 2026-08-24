@@ -68,6 +68,6 @@ jobs:
       - name: Teardown Environment
         if: ${{ always() }}
         run: |
-          docker compose -f docker-compose.test.yaml down \
+          docker compose -f docker-compose.yaml down \
             --volumes \
             --remove-orphans
