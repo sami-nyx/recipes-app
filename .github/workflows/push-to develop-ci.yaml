@@ -3,7 +3,7 @@ name: Development Pipeline (push to devlop)
 on:
   push:
     branches:
-      - develop
+      - develops
 
 concurrency:
   group: recipes-api-develop
