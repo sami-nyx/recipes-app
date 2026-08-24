@@ -22,12 +22,14 @@ jobs:
           recipes-backend
           test
           .github
+          nginx-test
 
     - name: Run Integration Tests
       run: |
         docker compose up --build\
           --abort-on-container-exit \
           --exit-code-from integration-tests
+          -f docker-compose.test.yaml
 
     - name: Teardown Environment
       if: always()
