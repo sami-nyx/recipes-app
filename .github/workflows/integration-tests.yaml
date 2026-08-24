@@ -21,7 +21,7 @@ jobs:
       # ============================================================
       # Database
       # ============================================================
-
+      AUTO_CREATE_DB: true
       DB_NAME: ${{ vars.DB_NAME }}
       DB_USER_NAME: ${{ vars.DB_USER_NAME }}
       DB_SCHEME: ${{ vars.DB_SCHEME }}
