@@ -53,14 +53,7 @@ jobs:
       # # Integration Tests
       # # ============================================================
 
-      # - name: Run Integration Tests
-      #   run: |
-      #     mkdir -p ./recipes-ui/dist/recipes-ui/browser
-      #     docker compose -f docker-compose.yaml up \
-      #       --build \
-      #       --abort-on-container-exit \
-      #       --exit-code-from integration-tests
-# ============================================================
+      # ============================================================
       # Set up Docker Buildx (Required for GHA Caching)
       # ============================================================
       - name: Set up Docker Buildx
