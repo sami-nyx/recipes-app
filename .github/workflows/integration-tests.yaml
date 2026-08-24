@@ -47,7 +47,7 @@ jobs:
             test
             .github
             nginx
-            docker-compose.test.yaml
+            docker-compose.yaml
 
       # ============================================================
       # Integration Tests
