@@ -8,11 +8,6 @@ on:
 jobs:
   integration-test:
     runs-on: ubuntu-22.04
-    # permissions:
-    #   id-token: write  
-    #   contents: write
-    # outputs:
-    #   resolved_tag: ${{ steps.tag_commit.outputs.IMAGE_TAG }}
     steps:
     - name: Checkout Code
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
@@ -22,14 +17,19 @@ jobs:
           recipes-backend
           test
           .github
-          nginx-test
+          nginx
 
     - name: Run Integration Tests
       run: |
-        docker compose up --build\
+        docker compose -f docker-compose.test.yaml up \
+          --build \
           --abort-on-container-exit \
           --exit-code-from integration-tests
-          -f docker-compose.test.yaml
+
+    - name: Teardown Environment
+      if: always()
+      run: |
+        docker compose -f docker-compose.test.yaml down -v
 
     - name: Teardown Environment
       if: always()
