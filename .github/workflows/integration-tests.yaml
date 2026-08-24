@@ -77,7 +77,6 @@ jobs:
           
           # Build explicitly via Buildx with GitHub Actions cache backend integration
           docker compose -f docker-compose.yaml build \
-            --provenance=false \
             --build-arg BUILDKIT_INLINE_CACHE=1
 
           # Run the compose stack without rebuilding again
