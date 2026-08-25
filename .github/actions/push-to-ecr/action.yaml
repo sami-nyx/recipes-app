@@ -70,7 +70,7 @@ runs:
         set -euo pipefail
 
         IMAGE_URI="${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}"
-        echo "$IMAGE_URI""
+        echo "$IMAGE_URI"
         docker tag \
           "$LOCAL_IMAGE" \
           "$IMAGE_URI"
