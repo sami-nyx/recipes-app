@@ -25,7 +25,7 @@ jobs:
 
       - name: Resolve image tag  
         id: resolve-tag
-        uses: ./.github/actions/resolve-next-tag
+        uses: ./.github/actions/resolve-tag
         with:
           major-minor-patch: patch
 
