@@ -9,11 +9,14 @@ on:
         type: boolean
         default: false
 
+    outputs:
       image-tag:
-        description: "Tag to apply to the image before pushing to ECR"
-        required: false
-        type: string
-        default: ""
+        description: "Tag of the image published to ECR"
+        value: ${{ jobs.integration-test.outputs.image-tag }}
+
+      image-uri:
+        description: "Full URI of the image published to ECR"
+        value: ${{ jobs.integration-test.outputs.image-uri }}
 jobs:
   integration-test:
     name: Integration Tests
@@ -22,6 +25,9 @@ jobs:
       contents: read
       id-token: write
 
+    outputs:
+      image-tag: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
+      image-uri: ${{ steps.publish-image.outputs.image-uri }}
     env:
       # ============================================================
       # Application
@@ -125,6 +131,7 @@ jobs:
           fi
       - name: Publish tested image to ECR
         if: ${{ inputs.publish-image }}
+        id: publish-image
         uses: ./.github/actions/push-to-ecr
         with:
           local-image: ${{ vars.LOCAL_IMAGE }}
