@@ -21,7 +21,7 @@ jobs:
       - name: Checkout application repository
         uses: actions/checkout@v4 
         with:
-          fetch-depth: 0
+          fetch-depth: 0     
 
       - name: Resolve image tag  
         id: resolve-tag
@@ -174,5 +174,5 @@ jobs:
           message: |
             GitOps update: `${{ needs.update-gitops.result }}`
             UI deployment: `${{ needs.deploy-ui.result }}`
-            Branch: `main`
+            Branch: `main` 
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
