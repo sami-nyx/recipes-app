@@ -32,22 +32,30 @@ services:
       context: ./recipes-backend/recipes-api
       dockerfile: Dockerfile
 
+      cache_from:
+        - type=gha,scope=recipes-api
+
+      cache_to:
+        - type=gha,mode=max,scope=recipes-api
+
+    command: ["python", "app.py"]
+
     container_name: recipes_api
     restart: always
 
     environment:
       FLASK_ENV: ${FLASK_ENV}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      PORT: ${PORT}
+      APP_VERSION: ${APP_VERSION}
+      CORS_ORIGIN: ${CORS_ORIGIN}
 
       DB_NAME: ${DB_NAME}
       DB_USER_NAME: ${DB_USER_NAME}
       DB_PASSWORD: ${DB_PASSWORD}
-
-      # Docker DNS resolves "postgres" to the DB container.
       DB_HOST: postgres
+      DB_SCHEME: ${DB_SCHEME}
       DB_PORT: 5432
-
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
-      SECRET_KEY: ${SECRET_KEY}
 
     depends_on:
       postgres:
@@ -91,15 +99,21 @@ services:
 
   integration-tests:
     build:
-      context: .
-      dockerfile: test/backend/Dockerfile
+      context: ./test/backend/
+      dockerfile: Dockerfile
+
+      cache_from:
+        - type=gha,scope=integration-tests
+
+      cache_to:
+        - type=gha,mode=max,scope=integration-tests
 
     environment:
-      API_BASE_URL: http://recipes-api:5000
+      API_BASE_URL: http://nginx
 
     depends_on:
-      recipes-api:
-        condition: service_healthy
+      nginx:
+        condition: service_started
 
     networks:
       - app_network
@@ -108,8 +122,10 @@ services:
 volumes:
   postgres_data:
 
+
 networks:
   app_network:
     driver: bridge
+
   db_network:
     driver: bridge

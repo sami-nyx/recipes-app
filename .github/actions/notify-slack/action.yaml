@@ -1,9 +1,9 @@
 name: "Slack Notify"
-description: "Send a standardized Slack notification"
+description: "Send a standardized Slack workflow notification"
 
 inputs:
   status:
-    description: "success or failure"
+    description: "started, success, failure, or cancelled"
     required: true
 
   title:
@@ -23,23 +23,94 @@ runs:
   using: "composite"
 
   steps:
+    # ============================================================
+    # Resolve notification icon
+    # ============================================================
+
+    - name: Resolve notification style
+      id: style
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        case "${{ inputs.status }}" in
+          started)
+            ICON=":rocket:"
+            ;;
+          success)
+            ICON=":white_check_mark:"
+            ;;
+          failure)
+            ICON=":x:"
+            ;;
+          cancelled)
+            ICON=":warning:"
+            ;;
+          *)
+            echo "Invalid Slack notification status: ${{ inputs.status }}"
+            exit 1
+            ;;
+        esac
+
+        echo "icon=$ICON" >> "$GITHUB_OUTPUT"
+
+    # ============================================================
+    # Build Slack payload
+    # ============================================================
+
+    - name: Build Slack payload
+      id: payload
+      shell: bash
+      env:
+        ICON: ${{ steps.style.outputs.icon }}
+        TITLE: ${{ inputs.title }}
+        MESSAGE: ${{ inputs.message }}
+
+        REPOSITORY: ${{ github.repository }}
+        BRANCH: ${{ github.head_ref || github.ref_name }}
+        ACTOR: ${{ github.actor }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      run: |
+        set -euo pipefail
+
+        BLOCK_TEXT="$(printf '%s *%s*\n\n%s\n\n*Repository:* `%s`\n*Branch:* `%s`\n*Actor:* `%s`\n*Run:* <%s|View GitHub Actions>' \
+          "$ICON" \
+          "$TITLE" \
+          "$MESSAGE" \
+          "$REPOSITORY" \
+          "$BRANCH" \
+          "$ACTOR" \
+          "$RUN_URL"
+        )"
+
+        PAYLOAD="$(
+          jq -cn \
+            --arg title "$TITLE" \
+            --arg text "$BLOCK_TEXT" \
+            '{
+              text: $title,
+              blocks: [
+                {
+                  type: "section",
+                  text: {
+                    type: "mrkdwn",
+                    text: $text
+                  }
+                }
+              ]
+            }'
+        )"
+
+        echo "payload=$PAYLOAD" >> "$GITHUB_OUTPUT"
+
+    # ============================================================
+    # Send notification
+    # ============================================================
+
     - name: Send Slack notification
-      uses: slackapi/slack-github-action@v3.0.3
+      uses: slackapi/slack-github-action@v4.0.0
       with:
         webhook: ${{ inputs.webhook }}
         webhook-type: incoming-webhook
-        payload: |
-          text: "${{ inputs.title }}"
-          blocks:
-            - type: "section"
-              text:
-                type: "mrkdwn"
-                text: |
-                  ${{ inputs.status == 'success' && ':white_check_mark:' || ':x:' }} *${{ inputs.title }}*
-
-                  ${{ inputs.message }}
-
-                  *Repository:* `${{ github.repository }}`
-                  *Branch:* `${{ github.head_ref || github.ref_name }}`
-                  *Actor:* `${{ github.actor }}`
-                  *Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View GitHub Actions>
+        payload: ${{ steps.payload.outputs.payload }}

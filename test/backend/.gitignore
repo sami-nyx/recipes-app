@@ -1,0 +1,36 @@
+# Byte-compiled / optimized / DLL files
+*/__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables & secrets (CRITICAL: Do not commit .env)
+.env
+.env.local
+.env.*.local
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+
+# Testing & Coverage outputs
+.pytest_cache/
+.coverage
+htmlcov/
+.nox/
+.tox/
+
+# IDEs & Code Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Database dumps or local SQLite files (if generated during testing)
+*.db
+*.sqlite3
+
+# OS generated files
+.DS_Store
+Thumbs.db
