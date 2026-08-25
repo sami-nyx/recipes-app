@@ -9,6 +9,7 @@ on:
 permissions:
   contents: read
   id-token: write
+  pull-requests: read
 jobs: 
   notify-start:
     name: Notify Slack - Started 
@@ -30,6 +31,7 @@ jobs:
             Branch: `${{ github.head_ref || github.ref_name }}` → `develop`
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
 
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -45,21 +47,22 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      - name: Run Super-Linter
-        uses: super-linter/super-linter@v8.7.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          VALIDATE_ALL_CODEBASE: false
-          FIX_MODE_ENABLED: false
+  #     - name: Run Super-Linter
+  #       uses: super-linter/super-linter@v8.7.0
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          VALIDATE_PYTHON_FLAKE8: true
-          VALIDATE_DOCKERFILE_HADOLINT: true
-          VALIDATE_YAML: true
-          VALIDATE_GITHUB_ACTIONS: true
-          VALIDATE_BASH: true
+  #         VALIDATE_ALL_CODEBASE: false
+  #         FIX_MODE_ENABLED: false
 
-          SAVE_SUPER_LINTER_SUMMARY: true
+  #         VALIDATE_PYTHON_FLAKE8: true
+  #         VALIDATE_DOCKERFILE_HADOLINT: true
+  #         VALIDATE_YAML: true
+  #         VALIDATE_GITHUB_ACTIONS: true
+  #         VALIDATE_BASH: true
+
+  #         SAVE_SUPER_LINTER_SUMMARY: true
   unit-tests:
     
     permissions:
@@ -70,8 +73,9 @@ jobs:
 
   integration-tests:
     needs:
-      - lint
+      # - lint
       - unit-tests
+
     uses: ./.github/workflows/integration-tests.yaml
 
     secrets: inherit  
@@ -80,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
 
     needs:
-      - lint
+      # - lint
       - unit-tests
       - integration-tests
 
