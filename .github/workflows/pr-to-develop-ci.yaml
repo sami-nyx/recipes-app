@@ -9,6 +9,7 @@ on:
 permissions:
   contents: read
   id-token: write
+  pull-requests: read
 jobs: 
   notify-start:
     name: Notify Slack - Started 
@@ -63,7 +64,7 @@ jobs:
     needs:
       # - lint
       - unit-tests
-      
+
     uses: ./.github/workflows/integration-tests.yaml
 
     secrets: inherit  
