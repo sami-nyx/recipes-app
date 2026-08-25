@@ -36,7 +36,6 @@ runs:
     # ------------------------------------------------------------------------
 
     - name: Configure AWS credentials
-      id: ecr-login
       uses: aws-actions/configure-aws-credentials@v6
       with:
         role-to-assume: ${{ inputs.role-to-assume }}
