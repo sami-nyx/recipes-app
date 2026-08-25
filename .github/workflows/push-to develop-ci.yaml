@@ -43,7 +43,8 @@ jobs:
   # ============================================================================
 
   tag-commit:
-    name: Tag Published Commit
+    name: Verify ECR and Tag Commit
+
     needs:
       - integration-tests-and-publish
 
@@ -51,18 +52,52 @@ jobs:
 
     permissions:
       contents: write
+      id-token: write
 
     steps:
+      # ==========================================================================
+      # Checkout
+      # ==========================================================================
+
       - name: Checkout Code
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Validate Published Tag
+
+      # ==========================================================================
+      # AWS Authentication
+      # ==========================================================================
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.ECR_PUSH_ROLE_ARN }}
+          aws-region: ${{ vars.IMAGE_REPO_REGION }}
+          disable-retry: true
+
+
+      # ==========================================================================
+      # ECR Login
+      # ==========================================================================
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+
+      # ==========================================================================
+      # Verify Published Image
+      # ==========================================================================
+
+      - name: Verify Published Image in ECR
+        id: verify-image
         shell: bash
         env:
           IMAGE_TAG: ${{ needs.integration-tests-and-publish.outputs.image-tag }}
           IMAGE_URI: ${{ needs.integration-tests-and-publish.outputs.image-uri }}
+          IMAGE_REPO: ${{ vars.IMAGE_REPO_NAME }}
+          AWS_REGION: ${{ vars.IMAGE_REPO_REGION }}
         run: |
           set -euo pipefail
 
@@ -76,8 +111,35 @@ jobs:
             exit 1
           fi
 
-          echo "Published image:"
-          echo "$IMAGE_URI"
+          echo "Checking ECR for:"
+          echo "  Repository: $IMAGE_REPO"
+          echo "  Tag:        $IMAGE_TAG"
+          echo "  URI:        $IMAGE_URI"
+
+          IMAGE_DIGEST="$(
+            aws ecr describe-images \
+              --repository-name "$IMAGE_REPO" \
+              --image-ids "imageTag=$IMAGE_TAG" \
+              --region "$AWS_REGION" \
+              --query 'imageDetails[0].imageDigest' \
+              --output text
+          )"
+
+          if [ -z "$IMAGE_DIGEST" ] || [ "$IMAGE_DIGEST" = "None" ]; then
+            echo "::error::Image $IMAGE_REPO:$IMAGE_TAG was not found in ECR"
+            exit 1
+          fi
+
+          echo "Successfully verified image in ECR"
+          echo "Tag:    $IMAGE_TAG"
+          echo "Digest: $IMAGE_DIGEST"
+
+          echo "image-digest=$IMAGE_DIGEST" >> "$GITHUB_OUTPUT"
+
+
+      # ==========================================================================
+      # Git Tag
+      # ==========================================================================
 
       - name: Tag Current Commit
         shell: bash
@@ -89,21 +151,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          echo "Tagging commit ${GITHUB_SHA} as ${IMAGE_TAG}"
+          echo "Tagging commit $GITHUB_SHA with $IMAGE_TAG"
 
           git tag "$IMAGE_TAG" "$GITHUB_SHA"
-
           git push origin "$IMAGE_TAG"
-
-
-
-
-
-
-
-
-
-
 
 
 
