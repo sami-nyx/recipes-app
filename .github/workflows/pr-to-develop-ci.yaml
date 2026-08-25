@@ -10,7 +10,7 @@ on:
 
 permissions:
   contents: read
-
+  id-token: write
 jobs: 
   notify-start:
     name: Notify Slack - Started 
