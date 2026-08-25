@@ -76,3 +76,4 @@ runs:
 
         echo "Next tag: $NEXT_TAG"
         echo "NEXT_TAG=$NEXT_TAG" >> "$GITHUB_OUTPUT"
+        echo "LATEST_TAG=$LATEST_TAG""

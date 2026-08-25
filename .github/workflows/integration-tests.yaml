@@ -111,7 +111,7 @@ jobs:
 
       - name: Resolve next version
         id: resolve-tag
-        uses: ./.github/actions/resolve-next-tag
+        uses: ./.github/actions/resolve-tag
         with:
           major-minor-patch: patch
 
