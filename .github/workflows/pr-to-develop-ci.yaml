@@ -61,6 +61,10 @@ jobs:
 
           SAVE_SUPER_LINTER_SUMMARY: true
   unit-tests:
+    
+    permissions:
+      pull-requests: read 
+      
     uses: ./.github/workflows/unit-tests.yaml
 
   integration-tests:

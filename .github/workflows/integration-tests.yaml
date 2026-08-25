@@ -25,7 +25,6 @@ jobs:
       contents: read
       id-token: write
 
-      pull-requests: read 
     outputs:
       image-tag: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
       image-uri: ${{ steps.publish-image.outputs.image-uri }}
