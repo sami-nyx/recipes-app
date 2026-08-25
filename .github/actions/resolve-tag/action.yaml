@@ -11,6 +11,10 @@ outputs:
   NEXT_TAG:
     description: "Resolved next semantic version tag"
     value: ${{ steps.resolve.outputs.NEXT_TAG }}
+  
+  LATEST_TAG:
+    description: "Resolved latest semantic version tag"
+    value: ${{ steps.resolve.outputs.LATEST_TAG }}
 
 runs:
   using: "composite"
