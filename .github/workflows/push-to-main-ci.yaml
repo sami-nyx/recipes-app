@@ -131,8 +131,6 @@ jobs:
           aws cloudfront create-invalidation \
             --distribution-id "$DISTRIBUTION_ID" \
             --paths "/*"
-
-
   notify:
     name: Notify Slack
     runs-on: ubuntu-latest
@@ -144,8 +142,11 @@ jobs:
     if: ${{ always() }}
 
     steps:
-      - name: Checkout repository
+      - name: Checkout local action directory
         uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/actions/slack-notify
 
       - name: Notify success
         if: >-
@@ -178,3 +179,49 @@ jobs:
             UI deployment: `${{ needs.deploy-ui.result }}`
             Branch: `main` 
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # notify:
+  #   name: Notify Slack
+  #   runs-on: ubuntu-latest
+
+  #   needs:
+  #     - update-gitops
+  #     - deploy-ui
+
+  #   if: ${{ always() }}
+
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+
+  #     - name: Notify success
+  #       if: >-
+  #         ${{
+  #           needs.update-gitops.result == 'success' &&
+  #           needs.deploy-ui.result == 'success'
+  #         }}
+  #       uses: ./.github/actions/slack-notify
+  #       with:
+  #         status: success
+  #         title: "Production deployment succeeded"
+  #         message: |
+  #           GitOps update: `${{ needs.update-gitops.result }}`
+  #           UI deployment: `${{ needs.deploy-ui.result }}`
+  #           Branch: `main`
+  #         webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  #     - name: Notify failure
+  #       if: >-
+  #         ${{
+  #           needs.update-gitops.result != 'success' ||
+  #           needs.deploy-ui.result != 'success'
+  #         }}
+  #       uses: ./.github/actions/slack-notify
+  #       with:
+  #         status: failure
+  #         title: "Production deployment failed"
+  #         message: |
+  #           GitOps update: `${{ needs.update-gitops.result }}`
+  #           UI deployment: `${{ needs.deploy-ui.result }}`
+  #           Branch: `main` 
+  #         webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
