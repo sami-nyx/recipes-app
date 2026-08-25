@@ -18,6 +18,9 @@ jobs:
   integration-test:
     name: Integration Tests
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      id-token: write
 
     env:
       # ============================================================
