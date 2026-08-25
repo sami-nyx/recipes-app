@@ -174,5 +174,5 @@ jobs:
           message: |
             GitOps update: `${{ needs.update-gitops.result }}`
             UI deployment: `${{ needs.deploy-ui.result }}`
-            Branch: `main`
+            Branch: `main` 
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
