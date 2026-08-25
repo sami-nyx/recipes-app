@@ -3,7 +3,7 @@ name: Development Pipeline (push to devlop)
 on:
   push:
     branches:
-      - develops
+      - main
 
 concurrency:
   group: recipes-api-develop
@@ -23,112 +23,113 @@ jobs:
   # Integration Tests
   # ============================================================================
 
-  integration-tests:
+  integration-tests-and-publish:
     needs:
       - unit-tests
 
     uses: ./.github/workflows/integration-tests.yaml
+    with:
+      publish-image: true
+
+  # # ============================================================================
+  # # Build and Publish
+  # # ============================================================================
+
+  # build-and-push:
+  #   name: Build and Push Image
+  #   runs-on: ubuntu-24.04
+
+  #   needs:
+  #     - unit-tests
+  #     - integration-tests
+
+  #   permissions:
+  #     id-token: write
+  #     contents: write
+
+  #   outputs:
+  #     image_tag: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
+
+  #   steps:
+
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
 
 
-  # ============================================================================
-  # Build and Publish
-  # ============================================================================
+  #     # ------------------------------------------------------------------------
+  #     # Resolve semantic version
+  #     # ------------------------------------------------------------------------
 
-  build-and-push:
-    name: Build and Push Image
-    runs-on: ubuntu-24.04
-
-    needs:
-      - unit-tests
-      - integration-tests
-
-    permissions:
-      id-token: write
-      contents: write
-
-    outputs:
-      image_tag: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
-
-    steps:
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+  #     - name: Resolve next version
+  #       id: resolve-tag
+  #       uses: ./.github/actions/resolve-next-tag
+  #       with:
+  #         major-minor-patch: patch
 
 
-      # ------------------------------------------------------------------------
-      # Resolve semantic version
-      # ------------------------------------------------------------------------
+  #     # ------------------------------------------------------------------------
+  #     # AWS Authentication
+  #     # ------------------------------------------------------------------------
 
-      - name: Resolve next version
-        id: resolve-tag
-        uses: ./.github/actions/resolve-next-tag
-        with:
-          major-minor-patch: patch
-
-
-      # ------------------------------------------------------------------------
-      # AWS Authentication
-      # ------------------------------------------------------------------------
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: arn:aws:iam::889867978066:role/protfolio_recipes_ecr_push_role
-          aws-region: ap-south-1
-          disable-retry: true
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@v6
+  #       with:
+  #         role-to-assume: arn:aws:iam::889867978066:role/protfolio_recipes_ecr_push_role
+  #         aws-region: ap-south-1
+  #         disable-retry: true
 
 
-      # ------------------------------------------------------------------------
-      # ECR Login
-      # ------------------------------------------------------------------------
+  #     # ------------------------------------------------------------------------
+  #     # ECR Login
+  #     # ------------------------------------------------------------------------
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-
-      # ------------------------------------------------------------------------
-      # Build image
-      # ------------------------------------------------------------------------
-
-      - name: Build Docker image
-        working-directory: ./recipes-backend/recipes-api
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: protfolio-recipes
-          IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
-        run: |
-          docker build \
-            -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
-            .
+  #     - name: Login to Amazon ECR
+  #       id: login-ecr
+  #       uses: aws-actions/amazon-ecr-login@v2
 
 
-      # ------------------------------------------------------------------------
-      # Push image
-      # ------------------------------------------------------------------------
+  #     # ------------------------------------------------------------------------
+  #     # Build image
+  #     # ------------------------------------------------------------------------
 
-      - name: Push image to Amazon ECR
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: protfolio-recipes
-          IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
-        run: |
-          docker push \
-            "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+  #     - name: Build Docker image
+  #       working-directory: ./recipes-backend/recipes-api
+  #       env:
+  #         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+  #         ECR_REPOSITORY: protfolio-recipes
+  #         IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
+  #       run: |
+  #         docker build \
+  #           -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+  #           .
 
 
-      # ------------------------------------------------------------------------
-      # Create Git tag only after the image was published successfully
-      # ------------------------------------------------------------------------
+  #     # ------------------------------------------------------------------------
+  #     # Push image
+  #     # ------------------------------------------------------------------------
 
-      - name: Create Git tag
-        env:
-          IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+  #     - name: Push image to Amazon ECR
+  #       env:
+  #         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+  #         ECR_REPOSITORY: protfolio-recipes
+  #         IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
+  #       run: |
+  #         docker push \
+  #           "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-          git tag "$IMAGE_TAG"
-          git push origin "$IMAGE_TAG"
+
+  #     # ------------------------------------------------------------------------
+  #     # Create Git tag only after the image was published successfully
+  #     # ------------------------------------------------------------------------
+
+  #     - name: Create Git tag
+  #       env:
+  #         IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
+  #       run: |
+  #         git config user.name "github-actions[bot]"
+  #         git config user.email "github-actions[bot]@users.noreply.github.com"
+
+  #         git tag "$IMAGE_TAG"
+  #         git push origin "$IMAGE_TAG"

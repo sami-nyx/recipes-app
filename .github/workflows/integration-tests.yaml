@@ -2,7 +2,18 @@ name: Integration Tests
 
 on:
   workflow_call:
+    inputs:
+      publish-image:
+        description: "Whether to push the tested image to ECR"
+        required: false
+        type: boolean
+        default: false
 
+      image-tag:
+        description: "Tag to apply to the image before pushing to ECR"
+        required: false
+        type: string
+        default: ""
 jobs:
   integration-test:
     name: Integration Tests
@@ -69,16 +80,7 @@ jobs:
 
           cache-from: type=gha,scope=recipes-api
           cache-to: type=gha,mode=max,scope=recipes-api
-      # ============================================================
-      # Cleanup
-      # ============================================================
- 
-      - name: Teardown Environment
-        if: ${{ always() }}
-        run: |
-          docker compose -f docker-compose.yaml down \
-            --volumes \
-            --remove-orphans
+
       # ============================================================
       # Cleanup
       # ============================================================
@@ -89,3 +91,51 @@ jobs:
           docker compose -f docker-compose.yaml down \
             --volumes \
             --remove-orphans
+
+      # ============================================================
+      # Optional: resolve tag and, tag image and push to ECR
+      # ============================================================
+
+      # ------------------------------------------------------------------------
+      # Resolve semantic version
+      # ------------------------------------------------------------------------
+
+      - name: Resolve next version
+        id: resolve-tag
+        uses: ./.github/actions/resolve-next-tag
+        with:
+          major-minor-patch: patch
+
+
+      - name: Validate image publishing inputs
+        if: ${{ inputs.publish-image }}
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
+          
+        run: |
+          set -euo pipefail
+
+          if [ -z "$IMAGE_TAG" ]; then
+            echo "::error::image-tag is required when publish-image=true"
+            exit 1
+          fi
+
+          if [ -z "$IMAGE_REPO" ]; then
+            echo "::error::image-repo is required when publish-image=true"
+            exit 1
+          fi
+
+          if [ -z "$AWS_REGION" ]; then
+            echo "::error::region is required when publish-image=true"
+            exit 1
+          fi
+      - name: Publish tested image to ECR
+        if: ${{ inputs.publish-image }}
+        uses: ./.github/actions/push-to-ecr
+        with:
+          local-image: ${{ vars.LOCAL_IMAGE }}
+          image-tag: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
+          repository: ${{ vars.IMAGE_REPO_NAME }}
+          aws-region: ${{ vars.IMAGE_REPO_REGION }}
+          role-to-assume: ${{ vars.ECR_PUSH_ROLE_ARN }}
