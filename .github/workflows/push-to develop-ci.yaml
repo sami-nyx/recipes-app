@@ -239,6 +239,140 @@ jobs:
 
             Image tag: `${{ needs.integration-tests-and-publish.outputs.image-tag }}`
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ============================================================================
+  # Create Pull Request: develop -> main
+  # ============================================================================
+
+  create-main-pr:
+    name: Create PR to Main
+
+    needs:
+      - tag-commit
+      - integration-tests-and-publish
+
+    runs-on: ubuntu-22.04
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    outputs:
+      pr-url: ${{ steps.pr.outputs.pr-url }}
+      pr-number: ${{ steps.pr.outputs.pr-number }}
+      pr-status: ${{ steps.pr.outputs.pr-status }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Create or Find Pull Request
+        id: pr
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_TAG: ${{ needs.integration-tests-and-publish.outputs.image-tag }}
+        run: |
+          set -euo pipefail
+
+          # Check whether develop -> main PR already exists
+          EXISTING_PR="$(
+            gh pr list \
+              --base main \
+              --head develop \
+              --state open \
+              --json number,url \
+              --jq '.[0] // empty'
+          )"
+
+          if [ -n "$EXISTING_PR" ]; then
+            PR_NUMBER="$(echo "$EXISTING_PR" | jq -r '.number')"
+            PR_URL="$(echo "$EXISTING_PR" | jq -r '.url')"
+
+            echo "PR already exists:"
+            echo "$PR_URL"
+
+            echo "pr-number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+            echo "pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
+            echo "pr-status=existing" >> "$GITHUB_OUTPUT"
+
+            exit 0
+          fi
+
+          PR_URL="$(
+            gh pr create \
+              --base main \
+              --head develop \
+              --title "Release ${IMAGE_TAG}" \
+              --body "$(cat <<EOF
+          ## Automated release
+
+          Development validation completed successfully.
+
+          **Image tag:** \`${IMAGE_TAG}\`
+          **Source branch:** \`develop\`
+          **Target branch:** \`main\`
+          **Commit:** \`${GITHUB_SHA}\`
+
+          This pull request was created automatically by the development pipeline.
+          EOF
+          )"
+          )"
+
+          PR_NUMBER="$(
+            gh pr view "$PR_URL" \
+              --json number \
+              --jq '.number'
+          )"
+
+          echo "Created PR #$PR_NUMBER"
+          echo "$PR_URL"
+
+          echo "pr-number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
+          echo "pr-status=created" >> "$GITHUB_OUTPUT"
+
+
+  # ============================================================================
+  # Slack - Pull Request Created
+  # ============================================================================
+
+  notify-main-pr:
+    name: Notify Slack - Main PR
+
+    needs:
+      - create-main-pr
+      - integration-tests-and-publish
+
+    runs-on: ubuntu-latest
+
+    if: ${{ needs.create-main-pr.result == 'success' }}
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Notify Slack
+        uses: ./.github/actions/notify-slack
+        with:
+          status: success
+          title: "Release PR ready"
+          message: |
+            PR: #${{ needs.create-main-pr.outputs.pr-number }}
+            Branch: `develop` → `main`
+            Image: `${{ needs.integration-tests-and-publish.outputs.image-tag }}`
+            Status: `${{ needs.create-main-pr.outputs.pr-status }}`
+
+            ${{ needs.create-main-pr.outputs.pr-url }}
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
 # name: Development Pipeline (push to develop)
 
 # on:
