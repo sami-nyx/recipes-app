@@ -29,6 +29,7 @@ jobs:
         with:
           major-minor-patch: patch
 
+
       - name: Checkout GitOps repository
         uses: actions/checkout@v4
         with:
@@ -53,6 +54,7 @@ jobs:
         env:
           IMAGE_TAG: ${{ steps.resolve-tag.outputs.LATEST_TAG }}
         run: |
+          echo "latest tag:$IMAGE_TAG"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
