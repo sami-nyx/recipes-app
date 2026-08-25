@@ -1,4 +1,4 @@
-name: Development Pipeline (push to devlop)
+name: Development Pipeline (push to develop)
 
 on:
   push:
@@ -20,26 +20,80 @@ jobs:
 
 
   # ============================================================================
-  # Integration Tests
+  # Integration Tests + ECR Publish
   # ============================================================================
 
   integration-tests-and-publish:
-    
+    needs:
+      - unit-tests
+
     permissions:
       contents: read
       id-token: write
 
     secrets: inherit
-    needs:
-      - unit-tests
 
     uses: ./.github/workflows/integration-tests.yaml
     with:
       publish-image: true
 
 
+  # ============================================================================
+  # Tag Git Commit
+  # ============================================================================
 
+  tag-commit:
+    name: Tag Published Commit
+    needs:
+      - integration-tests-and-publish
 
+    runs-on: ubuntu-22.04
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate Published Tag
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ needs.integration-tests-and-publish.outputs.image-tag }}
+          IMAGE_URI: ${{ needs.integration-tests-and-publish.outputs.image-uri }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$IMAGE_TAG" ]; then
+            echo "::error::Reusable workflow did not return an image tag"
+            exit 1
+          fi
+
+          if [ -z "$IMAGE_URI" ]; then
+            echo "::error::Reusable workflow did not return an image URI"
+            exit 1
+          fi
+
+          echo "Published image:"
+          echo "$IMAGE_URI"
+
+      - name: Tag Current Commit
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ needs.integration-tests-and-publish.outputs.image-tag }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          echo "Tagging commit ${GITHUB_SHA} as ${IMAGE_TAG}"
+
+          git tag "$IMAGE_TAG" "$GITHUB_SHA"
+
+          git push origin "$IMAGE_TAG"
 
 
 
