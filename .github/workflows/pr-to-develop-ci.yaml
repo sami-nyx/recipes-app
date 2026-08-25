@@ -13,7 +13,7 @@ permissions:
 
 jobs: 
   notify-start:
-    name: Notify Slack - Started
+    name: Notify Slack - Started 
     runs-on: ubuntu-latest
 
     steps:
