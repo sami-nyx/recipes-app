@@ -63,7 +63,8 @@ jobs:
   unit-tests:
     
     permissions:
-      pull-requests: read 
+      contents: read
+      pull-requests: read
       
     uses: ./.github/workflows/unit-tests.yaml
 
