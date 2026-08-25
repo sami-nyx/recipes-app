@@ -44,7 +44,7 @@ jobs:
       - name: Update recipes-api image tag
         working-directory: ./gitops
         env:
-          IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
+          IMAGE_TAG: ${{ steps.resolve-tag.outputs.LATEST_TAG }}
         run: |
           yq -i '.recipesApi.imageTag = strenv(IMAGE_TAG)' \
             apps/recipes-api/values.yaml
