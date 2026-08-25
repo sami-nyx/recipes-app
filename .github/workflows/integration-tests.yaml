@@ -120,16 +120,6 @@ jobs:
             echo "::error::image-tag is required when publish-image=true"
             exit 1
           fi
-
-          if [ -z "$IMAGE_REPO" ]; then
-            echo "::error::image-repo is required when publish-image=true"
-            exit 1
-          fi
-
-          if [ -z "$AWS_REGION" ]; then
-            echo "::error::region is required when publish-image=true"
-            exit 1
-          fi
       - name: Publish tested image to ECR
         if: ${{ inputs.publish-image }}
         uses: ./.github/actions/push-to-ecr
