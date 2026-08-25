@@ -146,7 +146,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           sparse-checkout: |
-            .github/actions/slack-notify
+            .github/actions/notify-slack
 
       - name: Notify success
         if: >-
@@ -154,7 +154,7 @@ jobs:
             needs.update-gitops.result == 'success' &&
             needs.deploy-ui.result == 'success'
           }}
-        uses: ./.github/actions/slack-notify
+        uses: ./.github/actions/notify-slack
         with:
           status: success
           title: "Production deployment succeeded"
