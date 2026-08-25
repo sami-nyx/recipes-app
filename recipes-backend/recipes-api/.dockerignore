@@ -13,6 +13,7 @@ ENV/
 # Environment Variables & Secrets
 .env
 *.env
+!.env.example
 
 # Git & Version Control
 .git/

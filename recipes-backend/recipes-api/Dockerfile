@@ -1,29 +1,64 @@
-# 1. Base image
-FROM python:3.11-slim
+# ============================================================
+# Stage 1 - Builder
+# ============================================================
 
-# 2. Prevent Python from writing .pyc files and enable unbuffered stdout/stderr logging
+FROM python:3.11-slim AS builder
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# 4. Set working directory inside the container
 WORKDIR /app
 
-# 5. Install system dependencies if compiling packages (e.g., libpq for postgres)
+# Install build dependencies only in builder stage
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt-get/lists/*
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# 6. Copy requirements first to leverage Docker layer caching
 COPY requirements.txt .
 
-# 7. Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies into a separate prefix
+RUN pip install \
+    --no-cache-dir \
+    --prefix=/install \
+    -r requirements.txt
 
-# 8. Copy application code
+
+# ============================================================
+# Stage 2 - Runtime
+# ============================================================
+
+FROM python:3.11-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Runtime library required by psycopg/PostgreSQL clients
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy installed Python packages from builder
+COPY --from=builder /install /usr/local
+
+# Copy application source
 COPY . .
 
-# 9. Expose the API port
-EXPOSE 5000
+# Run as a non-root user
+RUN useradd --create-home --uid 10001 appuser \
+    && chown -R appuser:appuser /app
 
-# 10. Run the application
-CMD ["python", "app.py"]
+USER appuser
+
+EXPOSE 5000
+CMD ["sh", "-c", "exec gunicorn \
+    --bind 0.0.0.0:${PORT} \
+    --workers 2 \
+    --threads 2 \
+    --timeout 60 \
+    --access-logfile - \
+    --error-logfile - \
+    'app:create_app()'"]

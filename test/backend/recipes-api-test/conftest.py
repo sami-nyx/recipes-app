@@ -1,45 +1,110 @@
-# test/backend/recipes-api-test/conftest.py
 import os
+
 import pytest
 import requests
 
-@pytest.fixture(scope="session")
-def base_url():
-    """Reads API target host from ENV, defaulting to Docker mapped port."""
-    return os.getenv("API_BASE_URL", "http://localhost:5001")
+
+# ============================================================
+# Base API URL
+# ============================================================
 
 @pytest.fixture(scope="session")
+def base_url():
+    """
+    Base URL of the Recipes API.
+
+    Defaults to localhost so the integration tests can be run
+    directly from the developer machine.
+
+    Docker Compose / CI can override this with API_BASE_URL.
+    """
+
+    return os.getenv(
+        "API_BASE_URL",
+        "http://localhost"
+    ).rstrip("/")
+
+
+# ============================================================
+# Shared HTTP session
+# ============================================================
+
+@pytest.fixture
 def api_session():
-    """Reusable HTTP session with standard headers."""
+    """
+    Provide a requests Session for integration tests.
+    """
+
     session = requests.Session()
-    session.headers.update({
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-    })
-    return session
+
+    yield session
+
+    session.close()
+
+
+# ============================================================
+# Primary authenticated test user
+# ============================================================
 
 @pytest.fixture
 def auth_headers(base_url, api_session):
-    """Utility fixture to register/login a user and yield dynamic Bearer Auth headers."""
-    unique_user = f"testuser_{os.urandom(4).hex()}"
-    user_payload = {
-        "name": "Integration Tester",
-        "username": unique_user,
-        "email": f"{unique_user}@example.com",
-        "password": "Password123!"
+    """
+    Register a unique test user and return its Authorization header.
+    """
+
+    suffix = os.urandom(4).hex()
+
+    user_data = {
+        "name": "Integration Test User",
+        "username": f"integration_{suffix}",
+        "email": f"integration_{suffix}@example.com",
+        "password": "SecurePassword123!"
     }
 
-    # Register
-    api_session.post(f"{base_url}/api/users/register", json=user_payload)
+    response = api_session.post(
+        f"{base_url}/api/users/register",
+        json=user_data
+    )
 
-    # Login
-    login_res = api_session.post(f"{base_url}/api/users/login", json={
-        "usernameOrEmail": unique_user,
-        "password": "Password123!"
-    })
+    assert response.status_code == 201, response.text
 
-    assert login_res.status_code == 200, f"Login failed: {login_res.text}"
-    token = login_res.json().get("accessToken")
-    assert token, "accessToken missing from response body"
+    token = response.json()["accessToken"]
 
-    return {"Authorization": f"Bearer {token}"}
+    return {
+        "Authorization": f"Bearer {token}"
+    }
+
+
+# ============================================================
+# Secondary authenticated test user
+# ============================================================
+
+@pytest.fixture
+def second_auth_headers(base_url, api_session):
+    """
+    Register a second unique user.
+
+    Used to test ownership and authorization boundaries.
+    """
+
+    suffix = os.urandom(4).hex()
+
+    user_data = {
+        "name": "Second Integration User",
+        "username": f"second_{suffix}",
+        "email": f"second_{suffix}@example.com",
+        "password": "SecurePassword123!"
+    }
+
+    response = api_session.post(
+        f"{base_url}/api/users/register",
+        json=user_data
+    )
+
+    assert response.status_code == 201, response.text
+
+    token = response.json()["accessToken"]
+
+    return {
+        "Authorization": f"Bearer {token}"
+    }
