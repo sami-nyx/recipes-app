@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       pull-requests: read 
-      
+      contents: read
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
