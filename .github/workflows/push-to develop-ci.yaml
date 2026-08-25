@@ -9,7 +9,36 @@ concurrency:
   group: recipes-api-develop
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
+
+  # ============================================================================
+  # Slack - Pipeline Started
+  # ============================================================================
+
+  notify-start:
+    name: Notify Slack - Started
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Notify Slack
+        uses: ./.github/actions/notify-slack
+        with:
+          status: started
+          title: "Development pipeline started"
+          message: |
+            Branch: `${{ github.ref_name }}`
+            Commit: `${{ github.sha }}`
+            Triggered by: `${{ github.actor }}`
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+
 
   # ============================================================================
   # Unit Tests
@@ -39,7 +68,7 @@ jobs:
 
 
   # ============================================================================
-  # Tag Git Commit
+  # Verify ECR + Tag Git Commit
   # ============================================================================
 
   tag-commit:
@@ -55,9 +84,10 @@ jobs:
       id-token: write
 
     steps:
-      # ==========================================================================
+
+      # ------------------------------------------------------------------------
       # Checkout
-      # ==========================================================================
+      # ------------------------------------------------------------------------
 
       - name: Checkout Code
         uses: actions/checkout@v6
@@ -65,9 +95,9 @@ jobs:
           fetch-depth: 0
 
 
-      # ==========================================================================
+      # ------------------------------------------------------------------------
       # AWS Authentication
-      # ==========================================================================
+      # ------------------------------------------------------------------------
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -77,18 +107,18 @@ jobs:
           disable-retry: true
 
 
-      # ==========================================================================
+      # ------------------------------------------------------------------------
       # ECR Login
-      # ==========================================================================
+      # ------------------------------------------------------------------------
 
       - name: Login to Amazon ECR
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
 
-      # ==========================================================================
+      # ------------------------------------------------------------------------
       # Verify Published Image
-      # ==========================================================================
+      # ------------------------------------------------------------------------
 
       - name: Verify Published Image in ECR
         id: verify-image
@@ -137,9 +167,9 @@ jobs:
           echo "image-digest=$IMAGE_DIGEST" >> "$GITHUB_OUTPUT"
 
 
-      # ==========================================================================
+      # ------------------------------------------------------------------------
       # Git Tag
-      # ==========================================================================
+      # ------------------------------------------------------------------------
 
       - name: Tag Current Commit
         shell: bash
@@ -157,157 +187,212 @@ jobs:
           git push origin "$IMAGE_TAG"
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  # # ============================================================================
-  # # Build and Publish
-  # # ============================================================================
-
-  # build-and-push:
-  #   name: Build and Push Image
-  #   runs-on: ubuntu-24.04
-
-  #   needs:
-  #     - unit-tests
-  #     - integration-tests
-
-  #   permissions:
-  #     id-token: write
-  #     contents: write
-
-  #   outputs:
-  #     image_tag: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
-
-  #   steps:
-
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 0
-
-
-  #     # ------------------------------------------------------------------------
-  #     # Resolve semantic version
-  #     # ------------------------------------------------------------------------
-
-  #     - name: Resolve next version
-  #       id: resolve-tag
-  #       uses: ./.github/actions/resolve-next-tag
-  #       with:
-  #         major-minor-patch: patch
-
-
-  #     # ------------------------------------------------------------------------
-  #     # AWS Authentication
-  #     # ------------------------------------------------------------------------
-
-  #     - name: Configure AWS credentials
-  #       uses: aws-actions/configure-aws-credentials@v6
-  #       with:
-  #         role-to-assume: arn:aws:iam::889867978066:role/protfolio_recipes_ecr_push_role
-  #         aws-region: ap-south-1
-  #         disable-retry: true
-
-
-  #     # ------------------------------------------------------------------------
-  #     # ECR Login
-  #     # ------------------------------------------------------------------------
-
-  #     - name: Login to Amazon ECR
-  #       id: login-ecr
-  #       uses: aws-actions/amazon-ecr-login@v2
-
-
-  #     # ------------------------------------------------------------------------
-  #     # Build image
-  #     # ------------------------------------------------------------------------
-
-  #     - name: Build Docker image
-  #       working-directory: ./recipes-backend/recipes-api
-  #       env:
-  #         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-  #         ECR_REPOSITORY: protfolio-recipes
-  #         IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
-  #       run: |
-  #         docker build \
-  #           -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
-  #           .
-
-
-  #     # ------------------------------------------------------------------------
-  #     # Push image
-  #     # ------------------------------------------------------------------------
-
-  #     - name: Push image to Amazon ECR
-  #       env:
-  #         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-  #         ECR_REPOSITORY: protfolio-recipes
-  #         IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
-  #       run: |
-  #         docker push \
-  #           "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-
-
-  #     # ------------------------------------------------------------------------
-  #     # Create Git tag only after the image was published successfully
-  #     # ------------------------------------------------------------------------
-
-  #     - name: Create Git tag
-  #       env:
-  #         IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
-  #       run: |
-  #         git config user.name "github-actions[bot]"
-  #         git config user.email "github-actions[bot]@users.noreply.github.com"
-
-  #         git tag "$IMAGE_TAG"
-  #         git push origin "$IMAGE_TAG"
+  # ============================================================================
+  # Slack - Pipeline Finished
+  # ============================================================================
+
+  notify:
+    name: Notify Slack - Finished
+    runs-on: ubuntu-latest
+
+    needs:
+      - unit-tests
+      - integration-tests-and-publish
+      - tag-commit
+
+    if: ${{ always() }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Resolve Workflow Result
+        id: result
+        shell: bash
+        run: |
+          if [[ \
+            "${{ needs.unit-tests.result }}" == "success" &&
+            "${{ needs.integration-tests-and-publish.result }}" == "success" &&
+            "${{ needs.tag-commit.result }}" == "success" \
+          ]]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "title=Development pipeline succeeded" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            echo "title=Development pipeline failed" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Notify Slack
+        uses: ./.github/actions/notify-slack
+        with:
+          status: ${{ steps.result.outputs.status }}
+          title: ${{ steps.result.outputs.title }}
+          message: |
+            Branch: `${{ github.ref_name }}`
+            Commit: `${{ github.sha }}`
+
+            Unit tests: `${{ needs.unit-tests.result }}`
+            Integration / ECR publish: `${{ needs.integration-tests-and-publish.result }}`
+            ECR verification / Git tag: `${{ needs.tag-commit.result }}`
+
+            Image tag: `${{ needs.integration-tests-and-publish.outputs.image-tag }}`
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+# name: Development Pipeline (push to develop)
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# concurrency:
+#   group: recipes-api-develop
+#   cancel-in-progress: false
+
+# jobs:
+
+#   # ============================================================================
+#   # Unit Tests
+#   # ============================================================================
+
+#   unit-tests:
+#     uses: ./.github/workflows/unit-tests.yaml
+
+
+#   # ============================================================================
+#   # Integration Tests + ECR Publish
+#   # ============================================================================
+
+#   integration-tests-and-publish:
+#     needs:
+#       - unit-tests
+
+#     permissions:
+#       contents: read
+#       id-token: write
+
+#     secrets: inherit
+
+#     uses: ./.github/workflows/integration-tests.yaml
+#     with:
+#       publish-image: true
+
+
+#   # ============================================================================
+#   # Tag Git Commit
+#   # ============================================================================
+
+#   tag-commit:
+#     name: Verify ECR and Tag Commit
+
+#     needs:
+#       - integration-tests-and-publish
+
+#     runs-on: ubuntu-22.04
+
+#     permissions:
+#       contents: write
+#       id-token: write
+
+#     steps:
+#       # ==========================================================================
+#       # Checkout
+#       # ==========================================================================
+
+#       - name: Checkout Code
+#         uses: actions/checkout@v6
+#         with:
+#           fetch-depth: 0
+
+
+#       # ==========================================================================
+#       # AWS Authentication
+#       # ==========================================================================
+
+#       - name: Configure AWS Credentials
+#         uses: aws-actions/configure-aws-credentials@v6
+#         with:
+#           role-to-assume: ${{ vars.ECR_PUSH_ROLE_ARN }}
+#           aws-region: ${{ vars.IMAGE_REPO_REGION }}
+#           disable-retry: true
+
+
+#       # ==========================================================================
+#       # ECR Login
+#       # ==========================================================================
+
+#       - name: Login to Amazon ECR
+#         id: ecr-login
+#         uses: aws-actions/amazon-ecr-login@v2
+
+
+#       # ==========================================================================
+#       # Verify Published Image
+#       # ==========================================================================
+
+#       - name: Verify Published Image in ECR
+#         id: verify-image
+#         shell: bash
+#         env:
+#           IMAGE_TAG: ${{ needs.integration-tests-and-publish.outputs.image-tag }}
+#           IMAGE_URI: ${{ needs.integration-tests-and-publish.outputs.image-uri }}
+#           IMAGE_REPO: ${{ vars.IMAGE_REPO_NAME }}
+#           AWS_REGION: ${{ vars.IMAGE_REPO_REGION }}
+#         run: |
+#           set -euo pipefail
+
+#           if [ -z "$IMAGE_TAG" ]; then
+#             echo "::error::Reusable workflow did not return an image tag"
+#             exit 1
+#           fi
+
+#           if [ -z "$IMAGE_URI" ]; then
+#             echo "::error::Reusable workflow did not return an image URI"
+#             exit 1
+#           fi
+
+#           echo "Checking ECR for:"
+#           echo "  Repository: $IMAGE_REPO"
+#           echo "  Tag:        $IMAGE_TAG"
+#           echo "  URI:        $IMAGE_URI"
+
+#           IMAGE_DIGEST="$(
+#             aws ecr describe-images \
+#               --repository-name "$IMAGE_REPO" \
+#               --image-ids "imageTag=$IMAGE_TAG" \
+#               --region "$AWS_REGION" \
+#               --query 'imageDetails[0].imageDigest' \
+#               --output text
+#           )"
+
+#           if [ -z "$IMAGE_DIGEST" ] || [ "$IMAGE_DIGEST" = "None" ]; then
+#             echo "::error::Image $IMAGE_REPO:$IMAGE_TAG was not found in ECR"
+#             exit 1
+#           fi
+
+#           echo "Successfully verified image in ECR"
+#           echo "Tag:    $IMAGE_TAG"
+#           echo "Digest: $IMAGE_DIGEST"
+
+#           echo "image-digest=$IMAGE_DIGEST" >> "$GITHUB_OUTPUT"
+
+
+#       # ==========================================================================
+#       # Git Tag
+#       # ==========================================================================
+
+#       - name: Tag Current Commit
+#         shell: bash
+#         env:
+#           IMAGE_TAG: ${{ needs.integration-tests-and-publish.outputs.image-tag }}
+#         run: |
+#           set -euo pipefail
+
+#           git config user.name "github-actions[bot]"
+#           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+#           echo "Tagging commit $GITHUB_SHA with $IMAGE_TAG"
+
+#           git tag "$IMAGE_TAG" "$GITHUB_SHA"
+#           git push origin "$IMAGE_TAG"

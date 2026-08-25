@@ -85,7 +85,7 @@ jobs:
           context: ./recipes-backend/recipes-api
           file: ./recipes-backend/recipes-api/Dockerfile
           load: true
-          tags: recipes-api:test
+          tags: ${{ vars.LOCAL_IMAGE }}
 
           cache-from: type=gha,scope=recipes-api
           cache-to: type=gha,mode=max,scope=recipes-api
