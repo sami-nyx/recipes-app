@@ -3,7 +3,7 @@ name: Deploy Production
 on:
   push:
     branches:
-      - maind
+      - main
 
 jobs:
 
@@ -51,7 +51,7 @@ jobs:
       - name: Commit GitOps change
         working-directory: ./gitops
         env:
-          IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
+          IMAGE_TAG: ${{ steps.resolve-tag.outputs.LATEST_TAG }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -76,7 +76,7 @@ jobs:
             git tag "$IMAGE_TAG"
             git push origin "$IMAGE_TAG"
           fi
-
+ 
 
   deploy-ui:
     name: Deploy UI
