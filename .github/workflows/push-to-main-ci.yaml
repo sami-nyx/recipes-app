@@ -5,6 +5,14 @@ on:
     branches:
       - main
 
+# update-gitops resolves "next version" from the latest git tag and then
+# commits/pushes to a separate repo (recipes-gitops) - two concurrent runs
+# could race on resolving and pushing that tag. Mirrors the guard already
+# on push-to-develop-ci.yaml.
+concurrency:
+  group: recipes-main-deploy
+  cancel-in-progress: false
+
 jobs:
 
   update-gitops:
@@ -158,10 +166,12 @@ jobs:
         with:
           status: success
           title: "Production deployment succeeded"
+          # No "Branch: ..." line here - notify-slack's own payload
+          # already appends one automatically, and it'd be identical to
+          # this one (always `main`, this workflow only triggers there).
           message: |
             GitOps update: `${{ needs.update-gitops.result }}`
             UI deployment: `${{ needs.deploy-ui.result }}`
-            Branch: `main`
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Notify failure
@@ -177,5 +187,4 @@ jobs:
           message: |
             GitOps update: `${{ needs.update-gitops.result }}`
             UI deployment: `${{ needs.deploy-ui.result }}`
-            Branch: `main` 
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
