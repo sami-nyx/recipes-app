@@ -46,6 +46,7 @@ services:
     environment:
       FLASK_ENV: ${FLASK_ENV}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      SECRET_KEY: ${SECRET_KEY}
       PORT: ${PORT}
       APP_VERSION: ${APP_VERSION}
       CORS_ORIGIN: ${CORS_ORIGIN}

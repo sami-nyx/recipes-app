@@ -15,12 +15,22 @@ def create_recipe():
 
 @recipes_bp.route('', methods=['GET'])
 def get_recipes():
-    try:
-        response_body, status_code = RecipeController.get_recipes(request.args)
-        return jsonify(response_body), status_code
-    except Exception as e:
-        print(f"Error fetching recipes: {e}")
-        return jsonify([]), 200
+    # No try/except here on purpose: any failure (an ApiError the
+    # controller raises, or a genuine DB error) is caught once, centrally,
+    # by the app-level error handlers in app.py - not re-caught per view.
+    response_body, status_code, meta = RecipeController.get_recipes(request.args)
+    response = jsonify(response_body)
+
+    response.headers['X-Total-Count'] = str(meta['total'])
+    response.headers['X-Page'] = str(meta['page'])
+    response.headers['X-Page-Size'] = str(meta['pageSize'])
+
+    return response, status_code
+
+@recipes_bp.route('/<string:recipe_id>', methods=['GET'])
+def get_recipe(recipe_id):
+    response_body, status_code = RecipeController.get_recipe_by_id(recipe_id)
+    return jsonify(response_body), status_code
 
 # --- UPDATE / EDIT RECIPE ROUTE ---
 @recipes_bp.route('/<string:recipe_id>', methods=['PUT'])

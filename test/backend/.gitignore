@@ -17,9 +17,14 @@ ENV/
 # Testing & Coverage outputs
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
 .nox/
 .tox/
+
+# Lint/type-checker caches
+.mypy_cache/
+.ruff_cache/
 
 # IDEs & Code Editors
 .vscode/
@@ -34,3 +39,6 @@ htmlcov/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log

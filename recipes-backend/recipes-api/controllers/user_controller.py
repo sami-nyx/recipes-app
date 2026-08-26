@@ -1,9 +1,9 @@
-from datetime import datetime, timezone
-
 from flask_jwt_extended import create_access_token
 
-from models.user import db, User, TokenBlocklist
-from app_logginig.logger import app_logger
+from exceptions import BadRequestError, ConflictError, ForbiddenError, NotFoundError, UnauthorizedError
+from extensions import db
+from models.user import User, TokenBlocklist
+from app_logging import app_logger
 
 
 class UserController:
@@ -13,32 +13,28 @@ class UserController:
         required_fields = ['name', 'username', 'email', 'password']
         for field in required_fields:
             if not data.get(field):
-                app_logger.warning(
-                    f"User registration failed: Missing field '{field}'",
-                    extra={"props": {"action": "REGISTER_USER", "status": "BAD_REQUEST", "missing_field": field}}
+                raise BadRequestError(
+                    f'{field} is required',
+                    action="REGISTER_USER", status="BAD_REQUEST", missing_field=field
                 )
-                return {'message': f'{field} is required'}, 400
 
         if data['username'] == 'test-user':
-            app_logger.warning(
-                "User registration failed: Username 'test-user' is reserved/taken",
-                extra={"props": {"action": "REGISTER_USER", "status": "CONFLICT", "username": "test-user"}}
+            raise ConflictError(
+                'Username is already taken',
+                action="REGISTER_USER", status="CONFLICT", username="test-user"
             )
-            return {'message': 'Username is already taken'}, 409
-        
+
         if User.query.filter_by(username=data['username']).first():
-            app_logger.warning(
-                f"User registration failed: Username already exists",
-                extra={"props": {"action": "REGISTER_USER", "status": "CONFLICT", "username": data['username']}}
+            raise ConflictError(
+                'Username is already taken',
+                action="REGISTER_USER", status="CONFLICT", username=data['username']
             )
-            return {'message': 'Username is already taken'}, 409
 
         if User.query.filter_by(email=data['email']).first():
-            app_logger.warning(
-                f"User registration failed: Email already registered",
-                extra={"props": {"action": "REGISTER_USER", "status": "CONFLICT", "email": data['email']}}
+            raise ConflictError(
+                'Email is already registered',
+                action="REGISTER_USER", status="CONFLICT", email=data['email']
             )
-            return {'message': 'Email is already registered'}, 409
 
         user = User(
             name=data['name'],
@@ -49,77 +45,60 @@ class UserController:
         )
         user.set_password(data['password'])
 
-        try:
-            db.session.add(user)
-            db.session.commit()
+        db.session.add(user)
+        db.session.commit()
 
-            token = create_access_token(
-                    identity=user.id,
-                    additional_claims={
-                        "username": user.username
-                    }
-                )
+        token = create_access_token(
+            identity=user.id,
+            additional_claims={
+                "username": user.username
+            }
+        )
 
-            app_logger.info(
-                f"User registered successfully: {user.id}",
-                extra={
-                    "props": {
-                        "action": "REGISTER_USER",
-                        "user_id": user.id,
-                        "username": user.username,
-                        "status": "SUCCESS"
-                    }
+        app_logger.info(
+            f"User registered successfully: {user.id}",
+            extra={
+                "props": {
+                    "action": "REGISTER_USER",
+                    "user_id": user.id,
+                    "username": user.username,
+                    "status": "SUCCESS"
                 }
-            )
+            }
+        )
 
-            return {
-                'user': user.to_dict(),
-                'accessToken': token
-            }, 201
+        return {
+            'user': user.to_dict(),
+            'accessToken': token
+        }, 201
 
-        except Exception as e:
-            db.session.rollback()
-            app_logger.exception(
-                    "User registration database error",
-                    extra={
-                        "props": {
-                            "action": "REGISTER_USER",
-                            "status": "FAILED"
-                        }
-                    }
-                )
-            return {
-                'message': 'An internal error occurred'
-            }, 500
     @staticmethod
     def login_user(data: dict):
         identifier = data.get('usernameOrEmail')
         password = data.get('password')
 
         if not identifier or not password:
-            app_logger.warning(
-                "Login failed: Missing credentials",
-                extra={"props": {"action": "LOGIN", "status": "BAD_REQUEST"}}
+            raise BadRequestError(
+                'Username/email and password are required',
+                action="LOGIN", status="BAD_REQUEST"
             )
-            return {'message': 'Username/email and password are required'}, 400
 
         user = User.query.filter(
             (User.username == identifier) | (User.email == identifier)
         ).first()
 
         if not user or not user.check_password(password):
-            app_logger.warning(
-                f"Login failed: Invalid credentials for identifier '{identifier}'",
-                extra={"props": {"action": "LOGIN", "status": "UNAUTHORIZED", "identifier": identifier}}
+            raise UnauthorizedError(
+                'Invalid username/email or password',
+                action="LOGIN", status="UNAUTHORIZED", identifier=identifier
             )
-            return {'message': 'Invalid username/email or password'}, 401
 
         token = create_access_token(
-                identity=user.id,
-                additional_claims={
-                    "username": user.username
-                }
-            )
+            identity=user.id,
+            additional_claims={
+                "username": user.username
+            }
+        )
 
         app_logger.info(
             f"User logged in successfully: {user.id}",
@@ -137,49 +116,31 @@ class UserController:
             'user': user.to_dict(),
             'accessToken': token
         }, 200
+
     @staticmethod
     def logout_user(user_id, jti):
-        try:
-            revoked_token = TokenBlocklist(
-                jti=jti,
-                user_id=user_id
-            )
+        revoked_token = TokenBlocklist(
+            jti=jti,
+            user_id=user_id
+        )
 
-            db.session.add(revoked_token)
-            db.session.commit()
+        db.session.add(revoked_token)
+        db.session.commit()
 
-            app_logger.info(
-                "User logged out successfully",
-                extra={
-                    "props": {
-                        "action": "LOGOUT",
-                        "user_id": user_id,
-                        "status": "SUCCESS"
-                    }
+        app_logger.info(
+            "User logged out successfully",
+            extra={
+                "props": {
+                    "action": "LOGOUT",
+                    "user_id": user_id,
+                    "status": "SUCCESS"
                 }
-            )
+            }
+        )
 
-            return {
-                'message': 'Logged out successfully'
-            }, 200
-
-        except Exception:
-            db.session.rollback()
-
-            app_logger.exception(
-                "User logout failed",
-                extra={
-                    "props": {
-                        "action": "LOGOUT",
-                        "user_id": user_id,
-                        "status": "FAILED"
-                    }
-                }
-            )
-
-            return {
-                'message': 'An internal error occurred'
-            }, 500
+        return {
+            'message': 'Logged out successfully'
+        }, 200
 
     @staticmethod
     def update_user(
@@ -192,21 +153,13 @@ class UserController:
         # ========================================================
 
         if authenticated_user_id != user_id:
-            app_logger.warning(
-                "Unauthorized user update attempt",
-                extra={
-                    "props": {
-                        "action": "UPDATE_USER",
-                        "authenticated_user_id": authenticated_user_id,
-                        "target_user_id": user_id,
-                        "status": "FORBIDDEN"
-                    }
-                }
+            raise ForbiddenError(
+                'You are not allowed to modify this user',
+                action="UPDATE_USER",
+                authenticated_user_id=authenticated_user_id,
+                target_user_id=user_id,
+                status="FORBIDDEN"
             )
-
-            return {
-                'message': 'You are not allowed to modify this user'
-            }, 403
 
         # ========================================================
         # Find user
@@ -215,9 +168,10 @@ class UserController:
         user = db.session.get(User, user_id)
 
         if not user:
-            return {
-                'message': 'User not found'
-            }, 404
+            raise NotFoundError(
+                'User not found',
+                action="UPDATE_USER", user_id=user_id, status="NOT_FOUND"
+            )
 
         # ========================================================
         # Immutable fields
@@ -234,10 +188,12 @@ class UserController:
         )
 
         if attempted_forbidden_fields:
-            return {
-                'message': 'One or more fields cannot be modified',
-                'fields': sorted(attempted_forbidden_fields)
-            }, 400
+            raise BadRequestError(
+                'One or more fields cannot be modified',
+                payload={'fields': sorted(attempted_forbidden_fields)},
+                action="UPDATE_USER", user_id=user_id, status="BAD_REQUEST",
+                attempted_fields=sorted(attempted_forbidden_fields)
+            )
 
         # ========================================================
         # Allowed fields
@@ -252,9 +208,10 @@ class UserController:
         provided_fields = allowed_fields.intersection(data.keys())
 
         if not provided_fields:
-            return {
-                'message': 'No editable fields were provided'
-            }, 400
+            raise BadRequestError(
+                'No editable fields were provided',
+                action="UPDATE_USER", user_id=user_id, status="BAD_REQUEST"
+            )
 
         # ========================================================
         # Name
@@ -264,21 +221,24 @@ class UserController:
             name = data['name']
 
             if not isinstance(name, str):
-                return {
-                    'message': 'Name must be a string'
-                }, 400
+                raise BadRequestError(
+                    'Name must be a string',
+                    action="UPDATE_USER", user_id=user_id, status="BAD_REQUEST"
+                )
 
             name = name.strip()
 
             if not name:
-                return {
-                    'message': 'Name cannot be empty'
-                }, 400
+                raise BadRequestError(
+                    'Name cannot be empty',
+                    action="UPDATE_USER", user_id=user_id, status="BAD_REQUEST"
+                )
 
             if len(name) > 100:
-                return {
-                    'message': 'Name cannot exceed 100 characters'
-                }, 400
+                raise BadRequestError(
+                    'Name cannot exceed 100 characters',
+                    action="UPDATE_USER", user_id=user_id, status="BAD_REQUEST"
+                )
 
             user.name = name
 
@@ -291,17 +251,18 @@ class UserController:
 
             if avatar_url is not None:
                 if not isinstance(avatar_url, str):
-                    return {
-                        'message': 'avatarUrl must be a string or null'
-                    }, 400
+                    raise BadRequestError(
+                        'avatarUrl must be a string or null',
+                        action="UPDATE_USER", user_id=user_id, status="BAD_REQUEST"
+                    )
 
                 avatar_url = avatar_url.strip()
 
                 if len(avatar_url) > 255:
-                    return {
-                        'message':
-                            'avatarUrl cannot exceed 255 characters'
-                    }, 400
+                    raise BadRequestError(
+                        'avatarUrl cannot exceed 255 characters',
+                        action="UPDATE_USER", user_id=user_id, status="BAD_REQUEST"
+                    )
 
             user.avatar_url = avatar_url
 
@@ -314,9 +275,10 @@ class UserController:
 
             if bio is not None:
                 if not isinstance(bio, str):
-                    return {
-                        'message': 'Bio must be a string or null'
-                    }, 400
+                    raise BadRequestError(
+                        'Bio must be a string or null',
+                        action="UPDATE_USER", user_id=user_id, status="BAD_REQUEST"
+                    )
 
                 bio = bio.strip()
 
@@ -326,42 +288,23 @@ class UserController:
         # Save
         # ========================================================
 
-        try:
-            db.session.commit()
+        db.session.commit()
 
-            app_logger.info(
-                "User profile updated successfully",
-                extra={
-                    "props": {
-                        "action": "UPDATE_USER",
-                        "user_id": user.id,
-                        "status": "SUCCESS"
-                    }
+        app_logger.info(
+            "User profile updated successfully",
+            extra={
+                "props": {
+                    "action": "UPDATE_USER",
+                    "user_id": user.id,
+                    "status": "SUCCESS"
                 }
-            )
+            }
+        )
 
-            return {
-                'message': 'User updated successfully',
-                'user': user.to_dict()
-            }, 200
-
-        except Exception:
-            db.session.rollback()
-
-            app_logger.exception(
-                "User update failed",
-                extra={
-                    "props": {
-                        "action": "UPDATE_USER",
-                        "user_id": user_id,
-                        "status": "FAILED"
-                    }
-                }
-            )
-
-            return {
-                'message': 'An internal error occurred'
-            }, 500
+        return {
+            'message': 'User updated successfully',
+            'user': user.to_dict()
+        }, 200
 
     @staticmethod
     def delete_user(
@@ -374,21 +317,13 @@ class UserController:
         # ========================================================
 
         if authenticated_user_id != user_id:
-            app_logger.warning(
-                "Unauthorized user deletion attempt",
-                extra={
-                    "props": {
-                        "action": "DELETE_USER",
-                        "authenticated_user_id": authenticated_user_id,
-                        "target_user_id": user_id,
-                        "status": "FORBIDDEN"
-                    }
-                }
+            raise ForbiddenError(
+                'You are not allowed to delete this user',
+                action="DELETE_USER",
+                authenticated_user_id=authenticated_user_id,
+                target_user_id=user_id,
+                status="FORBIDDEN"
             )
-
-            return {
-                'message': 'You are not allowed to delete this user'
-            }, 403
 
         # ========================================================
         # Find user
@@ -397,66 +332,46 @@ class UserController:
         user = db.session.get(User, user_id)
 
         if not user:
-            return {
-                'message': 'User not found'
-            }, 404
-
-        try:
-            # Revoke the JWT used to delete the account
-            revoked_token = TokenBlocklist(
-                jti=jti,
-                user_id=user_id
+            raise NotFoundError(
+                'User not found',
+                action="DELETE_USER", user_id=user_id, status="NOT_FOUND"
             )
 
-            db.session.add(revoked_token)
+        # Revoke the JWT used to delete the account
+        revoked_token = TokenBlocklist(
+            jti=jti,
+            user_id=user_id
+        )
 
-            db.session.delete(user)
+        db.session.add(revoked_token)
+        db.session.delete(user)
+        db.session.commit()
 
-            db.session.commit()
-
-            app_logger.info(
-                "User account deleted successfully",
-                extra={
-                    "props": {
-                        "action": "DELETE_USER",
-                        "user_id": user_id,
-                        "status": "SUCCESS"
-                    }
+        app_logger.info(
+            "User account deleted successfully",
+            extra={
+                "props": {
+                    "action": "DELETE_USER",
+                    "user_id": user_id,
+                    "status": "SUCCESS"
                 }
-            )
+            }
+        )
 
-            return {
-                'message': 'User deleted successfully'
-            }, 200
+        return {
+            'message': 'User deleted successfully'
+        }, 200
 
-        except Exception:
-            db.session.rollback()
-
-            app_logger.exception(
-                "User deletion failed",
-                extra={
-                    "props": {
-                        "action": "DELETE_USER",
-                        "user_id": user_id,
-                        "status": "FAILED"
-                    }
-                }
-            )
-
-            return {
-                'message': 'An internal error occurred'
-            }, 500        
     @staticmethod
     def get_author_by_id(author_id):
-        user = User.query.get(author_id)
-        
+        user = db.session.get(User, author_id)
+
         if not user:
-            app_logger.warning(
-                f"Author profile not found: {author_id}",
-                extra={"props": {"action": "GET_AUTHOR", "author_id": author_id, "status": "NOT_FOUND"}}
+            raise NotFoundError(
+                'Author not found',
+                action="GET_AUTHOR", author_id=author_id, status="NOT_FOUND"
             )
-            return {"error": "Author not found"}, 404
-        
+
         author_data = {
             "id": user.id,
             "name": user.name,
@@ -466,7 +381,7 @@ class UserController:
             "recipesCount": len(user.recipes) if hasattr(user, 'recipes') else 0,
             "followersCount": 0
         }
-        
+
         app_logger.info(
             f"Fetched author profile: {author_id}",
             extra={"props": {"action": "GET_AUTHOR", "author_id": author_id, "status": "SUCCESS"}}
