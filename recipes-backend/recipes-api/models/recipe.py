@@ -1,9 +1,9 @@
 import uuid
 from datetime import datetime, timezone
-from models.user import db 
+from extensions import db
 def generate_uuid():
     return str(uuid.uuid4())
-
+ 
 class Recipe(db.Model):
     __tablename__ = 'recipes'
 

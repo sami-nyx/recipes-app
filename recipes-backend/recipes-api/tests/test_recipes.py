@@ -1,8 +1,28 @@
 import unittest
 import json
 from tests.test_base import BaseTestCase
+from extensions import db
+from models.recipe import Recipe
 
 class TestRecipeRoutes(BaseTestCase):
+
+    def create_recipes(self, count):
+        """Insert `count` bare recipes directly, bypassing the HTTP/auth
+        flow - only the pagination behavior on GET is under test here."""
+        with self.app.app_context():
+            for i in range(count):
+                db.session.add(Recipe(title=f"Recipe {i}"))
+            db.session.commit()
+
+    def create_recipe_with(self, title, **fields):
+        """Insert a single recipe directly with explicit field overrides -
+        used by the sort tests, where prep_time/calories/cost need to
+        differ per recipe (create_recipes() above leaves them all at the
+        same model defaults, which is fine for pagination but useless for
+        asserting sort order)."""
+        with self.app.app_context():
+            db.session.add(Recipe(title=title, **fields))
+            db.session.commit()
 
 #=================================================================================
 #    authentication helper method to get JWT token for testing protected routes
@@ -34,6 +54,274 @@ class TestRecipeRoutes(BaseTestCase):
         response = self.client.get('/api/recipes')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json(), [])
+
+#=================================================================================
+#    test get recipes pagination
+#=================================================================================
+    def test_get_recipes_defaults_to_first_page(self):
+        """With no query params, GET /api/recipes returns at most the
+        default page size and reports the true total via headers."""
+        self.create_recipes(25)
+
+        response = self.client.get('/api/recipes')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.get_json()), 20)
+        self.assertEqual(response.headers['X-Total-Count'], '25')
+        self.assertEqual(response.headers['X-Page'], '1')
+        self.assertEqual(response.headers['X-Page-Size'], '20')
+
+    def test_get_recipes_respects_page_and_page_size(self):
+        """?page=&pageSize= narrow the slice returned, in newest-first
+        order, without changing the reported total."""
+        self.create_recipes(5)
+
+        response = self.client.get('/api/recipes?page=2&pageSize=2')
+        data = response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(data), 2)
+        self.assertEqual(response.headers['X-Total-Count'], '5')
+        self.assertEqual(response.headers['X-Page'], '2')
+        self.assertEqual(response.headers['X-Page-Size'], '2')
+        # Newest-first: page 1 is recipes 4,3; page 2 is recipes 2,1
+        self.assertEqual(data[0]['title'], 'Recipe 2')
+        self.assertEqual(data[1]['title'], 'Recipe 1')
+
+    def test_get_recipes_page_size_is_capped(self):
+        """An abusive ?pageSize= is clamped instead of honored as-is."""
+        self.create_recipes(3)
+
+        response = self.client.get('/api/recipes?pageSize=999999')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers['X-Page-Size'], '100')
+
+    def test_get_recipes_invalid_pagination_params_fall_back_to_defaults(self):
+        """Non-numeric page/pageSize shouldn't error - just use defaults."""
+        self.create_recipes(1)
+
+        response = self.client.get('/api/recipes?page=not-a-number&pageSize=also-not-a-number')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers['X-Page'], '1')
+        self.assertEqual(response.headers['X-Page-Size'], '20')
+
+#=================================================================================
+#    test get single recipe by id
+#=================================================================================
+    def test_get_recipe_by_id_success(self):
+        """GET /api/recipes/<id> should return the recipe, no auth required."""
+        headers = self.get_auth_header()
+        create_res = self.client.post('/api/recipes/create',
+                                       data=json.dumps({"title": "Findable Recipe"}),
+                                       headers=headers,
+                                       content_type='application/json')
+        recipe_id = create_res.get_json()['id']
+
+        response = self.client.get(f'/api/recipes/{recipe_id}')
+        data = response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data['id'], recipe_id)
+        self.assertEqual(data['title'], "Findable Recipe")
+
+    def test_get_recipe_by_id_not_found(self):
+        """GET /api/recipes/<id> for an unknown id should return 404."""
+        response = self.client.get('/api/recipes/does-not-exist')
+        data = response.get_json()
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(data.get('error'), 'Recipe not found')
+        self.assertEqual(data.get('message'), 'Recipe not found')
+
+#=================================================================================
+#    test recipe input validation
+#=================================================================================
+    def test_create_recipe_rejects_missing_title(self):
+        """POST /api/recipes/create without a title should return 400,
+        not a 500 from the database's NOT NULL constraint."""
+        headers = self.get_auth_header()
+        response = self.client.post('/api/recipes/create',
+                                     data=json.dumps({"description": "No title here"}),
+                                     headers=headers,
+                                     content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('title', response.get_json().get('message'))
+
+    def test_create_recipe_rejects_non_string_title(self):
+        """A non-string title should be rejected, not stored as-is."""
+        headers = self.get_auth_header()
+        response = self.client.post('/api/recipes/create',
+                                     data=json.dumps({"title": 12345}),
+                                     headers=headers,
+                                     content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_create_recipe_rejects_title_too_long(self):
+        """A title over the DB column's 150-char limit should be rejected
+        here (400) instead of failing at the database layer."""
+        headers = self.get_auth_header()
+        response = self.client.post('/api/recipes/create',
+                                     data=json.dumps({"title": "x" * 151}),
+                                     headers=headers,
+                                     content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_create_recipe_rejects_negative_servings(self):
+        """servings must be a positive number."""
+        headers = self.get_auth_header()
+        response = self.client.post('/api/recipes/create',
+                                     data=json.dumps({"title": "Bad Servings", "servings": -1}),
+                                     headers=headers,
+                                     content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_create_recipe_rejects_ingredient_missing_name(self):
+        """An ingredient without a name should be rejected here (400),
+        not reach Ingredient.name's NOT NULL constraint and 500."""
+        headers = self.get_auth_header()
+        payload = {
+            "title": "Nameless Ingredient",
+            "parts": [{
+                "title": "Part 1",
+                "ingredients": [{"amount": 5, "unit": "g"}]
+            }]
+        }
+
+        response = self.client.post('/api/recipes/create',
+                                     data=json.dumps(payload),
+                                     headers=headers,
+                                     content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_create_recipe_allows_explicit_null_parts(self):
+        """`"parts": null` used to crash with a 500 (iterating None) -
+        it should be treated the same as omitting `parts` entirely."""
+        headers = self.get_auth_header()
+        response = self.client.post('/api/recipes/create',
+                                     data=json.dumps({"title": "Null Parts", "parts": None}),
+                                     headers=headers,
+                                     content_type='application/json')
+
+        data = response.get_json()
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(data['parts'], [])
+
+    def test_update_recipe_rejects_ingredient_missing_name(self):
+        """PUT /api/recipes/<id> should reject a nameless ingredient the
+        same way create does."""
+        headers = self.get_auth_header()
+        create_res = self.client.post('/api/recipes/create',
+                                       data=json.dumps({"title": "Original"}),
+                                       headers=headers,
+                                       content_type='application/json')
+        recipe_id = create_res.get_json()['id']
+
+        payload = {
+            "parts": [{
+                "title": "Part 1",
+                "ingredients": [{"amount": 5, "unit": "g"}]
+            }]
+        }
+
+        response = self.client.put(f'/api/recipes/{recipe_id}',
+                                    data=json.dumps(payload),
+                                    headers=headers,
+                                    content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_update_recipe_allows_explicit_null_parts(self):
+        """`"parts": null` on update should leave existing parts
+        untouched instead of crashing with a 500."""
+        headers = self.get_auth_header()
+        initial_payload = {
+            "title": "Has Parts",
+            "parts": [{"title": "Part 1", "ingredients": [{"name": "Salt", "amount": 5, "unit": "g"}]}]
+        }
+        create_res = self.client.post('/api/recipes/create',
+                                       data=json.dumps(initial_payload),
+                                       headers=headers,
+                                       content_type='application/json')
+        recipe_id = create_res.get_json()['id']
+
+        response = self.client.put(f'/api/recipes/{recipe_id}',
+                                    data=json.dumps({"title": "Still Has Parts", "parts": None}),
+                                    headers=headers,
+                                    content_type='application/json')
+
+        data = response.get_json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(data['parts']), 1)
+        self.assertEqual(data['parts'][0]['ingredients'][0]['name'], "Salt")
+
+#=================================================================================
+#    test get recipes sorting
+#=================================================================================
+    def test_get_recipes_defaults_to_newest_first(self):
+        """No ?sort= should behave exactly as before - newest first."""
+        self.create_recipe_with("First", prep_time_minutes=10)
+        self.create_recipe_with("Second", prep_time_minutes=5)
+
+        response = self.client.get('/api/recipes')
+        data = response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data[0]['title'], "Second")
+        self.assertEqual(data[1]['title'], "First")
+
+    def test_get_recipes_sort_by_prep_time_ascending(self):
+        """?sort=prepTime orders quickest-first."""
+        self.create_recipe_with("Slow", prep_time_minutes=30)
+        self.create_recipe_with("Quick", prep_time_minutes=5)
+        self.create_recipe_with("Medium", prep_time_minutes=15)
+
+        response = self.client.get('/api/recipes?sort=prepTime')
+        titles = [r['title'] for r in response.get_json()]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(titles, ["Quick", "Medium", "Slow"])
+
+    def test_get_recipes_sort_by_calories_ascending(self):
+        """?sort=calories orders lowest-calorie-first."""
+        self.create_recipe_with("Heavy", calories_per_100g=500)
+        self.create_recipe_with("Light", calories_per_100g=100)
+
+        response = self.client.get('/api/recipes?sort=calories')
+        titles = [r['title'] for r in response.get_json()]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(titles, ["Light", "Heavy"])
+
+    def test_get_recipes_sort_by_cost_ascending(self):
+        """?sort=cost orders cheapest-first."""
+        self.create_recipe_with("Pricey", cost_per_100g=9.99)
+        self.create_recipe_with("Cheap", cost_per_100g=0.50)
+
+        response = self.client.get('/api/recipes?sort=cost')
+        titles = [r['title'] for r in response.get_json()]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(titles, ["Cheap", "Pricey"])
+
+    def test_get_recipes_invalid_sort_falls_back_to_newest(self):
+        """An unrecognized ?sort= value shouldn't error - just use the
+        default, same leniency as invalid page/pageSize."""
+        self.create_recipe_with("First", prep_time_minutes=10)
+        self.create_recipe_with("Second", prep_time_minutes=5)
+
+        response = self.client.get('/api/recipes?sort=not-a-real-option')
+        data = response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data[0]['title'], "Second")
+        self.assertEqual(data[1]['title'], "First")
 
 #=================================================================================
 #    test create recipe with authentication
@@ -74,6 +362,62 @@ class TestRecipeRoutes(BaseTestCase):
                                      data=json.dumps({"title": "No Auth"}),
                                      content_type='application/json')
         self.assertEqual(response.status_code, 401)
+
+#=================================================================================
+#    test recipe size limits
+#=================================================================================
+    def test_create_recipe_rejects_too_many_parts(self):
+        """POST /api/recipes/create with over 50 parts should be rejected
+        before touching the database."""
+        headers = self.get_auth_header()
+        payload = {
+            "title": "Too Many Parts",
+            "parts": [{"title": f"Part {i}"} for i in range(51)]
+        }
+
+        response = self.client.post('/api/recipes/create',
+                                     data=json.dumps(payload),
+                                     headers=headers,
+                                     content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('error', response.get_json())
+
+    def test_create_recipe_rejects_too_many_ingredients(self):
+        """POST /api/recipes/create with over 50 ingredients in one part
+        should be rejected before touching the database."""
+        headers = self.get_auth_header()
+        payload = {
+            "title": "Too Many Ingredients",
+            "parts": [{
+                "title": "Overloaded Part",
+                "ingredients": [{"name": f"Ingredient {i}"} for i in range(51)]
+            }]
+        }
+
+        response = self.client.post('/api/recipes/create',
+                                     data=json.dumps(payload),
+                                     headers=headers,
+                                     content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('error', response.get_json())
+
+    def test_create_recipe_rejects_oversized_payload(self):
+        """A request body over MAX_CONTENT_LENGTH is rejected (413) by
+        Werkzeug before the route even runs."""
+        headers = self.get_auth_header()
+        payload = {
+            "title": "Huge Payload",
+            "description": "x" * (2 * 1024 * 1024)  # 2 MB, over the 1 MB cap
+        }
+
+        response = self.client.post('/api/recipes/create',
+                                     data=json.dumps(payload),
+                                     headers=headers,
+                                     content_type='application/json')
+
+        self.assertEqual(response.status_code, 413)
 
 #=================================================================================
 #    test update recipe
@@ -250,6 +594,21 @@ class TestRecipeRoutes(BaseTestCase):
         # 3. Verify the recipe still exists
         get_res = self.client.get('/api/recipes')
         self.assertEqual(len(get_res.get_json()), 1)
+
+#=================================================================================
+#    test error response shape
+#=================================================================================
+    def test_delete_nonexistent_recipe_returns_404_with_both_keys(self):
+        """A NotFoundError raised from the controller should be caught by
+        the centralized handler and carry both 'error' and 'message'."""
+        headers = self.get_auth_header()
+
+        response = self.client.delete('/api/recipes/does-not-exist', headers=headers)
+        data = response.get_json()
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(data.get('error'), 'Recipe not found')
+        self.assertEqual(data.get('message'), 'Recipe not found')
 
 if __name__ == '__main__':
     unittest.main()

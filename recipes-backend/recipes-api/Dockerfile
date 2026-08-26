@@ -9,11 +9,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install build dependencies only in builder stage
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+# No apt packages needed here: every dependency in requirements.txt ships
+# a prebuilt wheel for this platform (psycopg2-binary included), so there's
+# nothing for a C compiler or libpq headers to build.
 
 COPY requirements.txt .
 

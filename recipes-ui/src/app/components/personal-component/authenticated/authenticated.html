@@ -1,6 +1,5 @@
 <div class="personal-container">
   <div class="personal-wrapper">
-    
     <!-- Header Section (Avatar Centered Above Title) -->
     <div class="header">
       <div class="avatar-icon">
@@ -13,9 +12,7 @@
       <div class="header-text">
         <h2 class="title">Welcome back</h2>
         <h2 class="title">{{ user()?.name }}</h2>
-        <p class="subtitle">
-          &#64;{{ user()?.username }} &bull; {{ user()?.email }}
-        </p>
+        <p class="subtitle">&#64;{{ user()?.username }} &bull; {{ user()?.email }}</p>
         @if (user()?.bio) {
           <p class="user-bio">"{{ user()?.bio }}"</p>
         }
@@ -41,18 +38,34 @@
     </div>
 
     <!-- Actions Section -->
-     
+
     <div class="actions">
-     <button mat-flat-button color="primary" routerLink="/recipes/create">
+      <button mat-flat-button color="primary" routerLink="/recipes/create">
         <mat-icon>add</mat-icon> Create Recipe
       </button>
-    </div>  
+    </div>
+    <div class="actions">
+      <button mat-stroked-button class="action-btn" (click)="editProfile()">
+        <mat-icon>edit</mat-icon>
+        Edit Profile
+      </button>
+    </div>
     <div class="actions">
       <button mat-flat-button color="warn" class="action-btn" (click)="logout()">
         <mat-icon>logout</mat-icon>
         Sign Out
       </button>
     </div>
-
+    <div class="actions">
+      <button
+        mat-button
+        color="warn"
+        class="action-btn delete-account-btn"
+        (click)="deleteAccount()"
+      >
+        <mat-icon>delete_forever</mat-icon>
+        Delete Account
+      </button>
+    </div>
   </div>
 </div>

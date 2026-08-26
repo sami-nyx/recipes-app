@@ -51,6 +51,7 @@ jobs:
       # ============================================================
 
       JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
 
     steps:

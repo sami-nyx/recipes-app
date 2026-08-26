@@ -22,10 +22,10 @@ import { MatListModule } from '@angular/material/list';
     MatChipsModule,
     MatDividerModule,
     MatProgressSpinnerModule,
-    MatListModule
+    MatListModule,
   ],
   templateUrl: './view-recipe-component.html',
-  styleUrl: './view-recipe-component.css'
+  styleUrl: './view-recipe-component.css',
 })
 export class ViewRecipeComponent implements OnInit {
   private route = inject(ActivatedRoute);
@@ -55,7 +55,7 @@ export class ViewRecipeComponent implements OnInit {
       error: () => {
         this.recipe.set(null);
         this.isLoading.set(false);
-      }
+      },
     });
   }
 
@@ -68,7 +68,7 @@ export class ViewRecipeComponent implements OnInit {
       const updatedRecipe: Recipe = {
         ...current,
         isStarred,
-        favsCount
+        favsCount,
       };
 
       this.recipe.set(updatedRecipe);
@@ -77,6 +77,6 @@ export class ViewRecipeComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['/explore'])
+    this.router.navigate(['/explore']);
   }
 }
