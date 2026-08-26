@@ -100,8 +100,14 @@ jobs:
         id: result
         shell: bash
         run: |
+          # lint deliberately excluded: it's not in this job's `needs`
+          # above (its actual check is commented out - see the `lint`
+          # job), so `needs.lint.result` isn't populated in this context
+          # and always evaluates to empty. Referencing it here previously
+          # meant this condition was never true - the Slack summary
+          # always reported "PR validation failed" regardless of the
+          # real outcome.
           if [[ \
-            "${{ needs.lint.result }}" == "success" &&
             "${{ needs.unit-tests.result }}" == "success" &&
             "${{ needs.integration-tests.result }}" == "success" \
           ]]; then
@@ -121,7 +127,6 @@ jobs:
             PR: #${{ github.event.pull_request.number }}
             Branch: `${{ github.head_ref || github.ref_name }}` → `develop`
 
-            Lint: `${{ needs.lint.result }}`
             Unit tests: `${{ needs.unit-tests.result }}`
             Integration tests: `${{ needs.integration-tests.result }}`
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -28,6 +28,15 @@ services:
 
 
   recipes-api:
+    # `image:` alongside `build:`: if an image already exists under this
+    # tag (e.g. CI pre-built and `docker load`ed it via buildx, tagging it
+    # ${LOCAL_IMAGE}), compose reuses it as-is instead of rebuilding - so
+    # the image integration tests run against is guaranteed to be the
+    # exact one that gets published, not a coincidentally-similar rebuild.
+    # Local dev is unaffected: LOCAL_IMAGE is unset, so this just falls
+    # back to `recipes-api:local`, which doesn't exist yet on a fresh
+    # machine - compose builds it normally and tags it that name.
+    image: ${LOCAL_IMAGE:-recipes-api:local}
     build:
       context: ./recipes-backend/recipes-api
       dockerfile: Dockerfile
