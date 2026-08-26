@@ -6,7 +6,7 @@ export interface RegisterUserDto {
   name: string;
   username: string;
   email: string;
-  password?: string; 
+  password?: string;
   bio?: string;
   avatarUrl?: string;
 }
@@ -36,7 +36,7 @@ export interface UpdateUserResponse {
   user: User;
 }
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class UserService {
   private readonly apiUrl = `${environment.fullApiUrl}/users`;
@@ -47,22 +47,18 @@ export class UserService {
   currentUser = signal<User | null>(this.getStoredUser());
   token = signal<string | null>(this.getStoredToken());
   isAuthenticated = computed(() => !!this.token());
-  
+
   constructor(private http: HttpClient) {}
   registerUser(userData: any): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, userData).pipe(
-      tap((response) => this.handleAuthentication(response))
-    );
+    return this.http
+      .post<AuthResponse>(`${this.apiUrl}/register`, userData)
+      .pipe(tap((response) => this.handleAuthentication(response)));
   }
 
-
   login(credentials: any): Observable<AuthResponse> {
-
-  console.log(environment.fullApiUrl)
-  console.log("apiURL:", this.apiUrl)
-    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
-      tap((response) => this.handleAuthentication(response))
-    );
+    return this.http
+      .post<AuthResponse>(`${this.apiUrl}/login`, credentials)
+      .pipe(tap((response) => this.handleAuthentication(response)));
   }
 
   /**
@@ -82,18 +78,25 @@ export class UserService {
     this.clearSession();
 
     if (token) {
-      this.http.post(`${this.apiUrl}/logout`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      }).pipe(
-        catchError((error) => {
-          // Best-effort: local state is already cleared either way, so a
-          // failure here just means the token stays valid server-side
-          // until it naturally expires - no worse than before this
-          // method called the backend at all.
-          console.error('Failed to revoke session server-side:', error);
-          return of(null);
-        })
-      ).subscribe();
+      this.http
+        .post(
+          `${this.apiUrl}/logout`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        )
+        .pipe(
+          catchError((error) => {
+            // Best-effort: local state is already cleared either way, so a
+            // failure here just means the token stays valid server-side
+            // until it naturally expires - no worse than before this
+            // method called the backend at all.
+            console.error('Failed to revoke session server-side:', error);
+            return of(null);
+          }),
+        )
+        .subscribe();
     }
   }
 
@@ -107,7 +110,7 @@ export class UserService {
       tap((response) => {
         localStorage.setItem(this.USER_KEY, JSON.stringify(response.user));
         this.currentUser.set(response.user);
-      })
+      }),
     );
   }
 
@@ -116,12 +119,12 @@ export class UserService {
    * clears local session state - there's nothing left to be logged in as.
    */
   deleteUser(userId: string): Observable<{ message: string }> {
-    return this.http.delete<{ message: string }>(`${this.apiUrl}/${userId}`).pipe(
-      tap(() => this.clearSession())
-    );
+    return this.http
+      .delete<{ message: string }>(`${this.apiUrl}/${userId}`)
+      .pipe(tap(() => this.clearSession()));
   }
 
-/**
+  /**
    * Checks if the currently logged-in user matches the provided author/user ID
    */
   isOwner(authorId?: string | null): boolean {
@@ -142,7 +145,7 @@ export class UserService {
 
   private handleAuthentication(response: AuthResponse): void {
     const { accessToken, user } = response;
-    
+
     // 1. Save to localStorage for persistence
     localStorage.setItem(this.TOKEN_KEY, accessToken);
     localStorage.setItem(this.USER_KEY, JSON.stringify(user));
@@ -160,5 +163,4 @@ export class UserService {
     const userJson = localStorage.getItem(this.USER_KEY);
     return userJson ? JSON.parse(userJson) : null;
   }
-
 }

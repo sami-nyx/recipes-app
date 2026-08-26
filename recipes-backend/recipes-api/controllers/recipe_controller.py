@@ -11,6 +11,20 @@ from validation.recipes import validate_recipe_payload
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 100
 
+# Sorting is applied server-side, before pagination - recipes are
+# paginated, so sorting only what's already been fetched would silently
+# give a wrong answer past page 1 (e.g. the actual cheapest recipe could
+# be sitting on page 3). "Lowest first" for prepTime/calories/cost is a
+# deliberate default (quickest/lightest/cheapest surfaces first) - not an
+# arbitrary column-order choice.
+DEFAULT_SORT = 'newest'
+SORT_OPTIONS = {
+    'newest': Recipe.created_at.desc(),
+    'prepTime': Recipe.prep_time_minutes.asc(),
+    'calories': Recipe.calories_per_100g.asc(),
+    'cost': Recipe.cost_per_100g.asc(),
+}
+
 
 def _parse_positive_int(raw, default):
     """Best-effort int parse that never raises - falls back to `default`
@@ -37,11 +51,21 @@ def _parse_pagination(args):
     return page, page_size
 
 
+def _parse_sort(args):
+    """Read `sort` from query args - any value outside SORT_OPTIONS
+    (missing, misspelled, tampered-with) falls back to DEFAULT_SORT
+    rather than erroring, matching _parse_pagination's leniency."""
+    args = args or {}
+    sort = args.get('sort')
+    return sort if sort in SORT_OPTIONS else DEFAULT_SORT
+
+
 class RecipeController:
 
     @classmethod
     def get_recipes(cls, args=None):
-        """Fetch one page of recipes, newest first.
+        """Fetch one page of recipes, ordered by `sort` (newest first by
+        default).
 
         Returns a (body, status_code, meta) tuple. `meta` carries
         pagination info for the view to expose as response headers.
@@ -49,6 +73,7 @@ class RecipeController:
         of being caught here.
         """
         page, page_size = _parse_pagination(args)
+        sort = _parse_sort(args)
 
         total = Recipe.query.count()
 
@@ -58,7 +83,7 @@ class RecipeController:
                 selectinload(Recipe.author),
                 selectinload(Recipe.parts).selectinload(RecipePart.ingredients)
             )
-            .order_by(Recipe.created_at.desc())
+            .order_by(SORT_OPTIONS[sort])
             .offset((page - 1) * page_size)
             .limit(page_size)
             .all()
@@ -71,6 +96,7 @@ class RecipeController:
                     "action": "GET_RECIPES_LIST",
                     "page": page,
                     "page_size": page_size,
+                    "sort": sort,
                     "count": len(recipes),
                     "total": total,
                     "status": "SUCCESS"

@@ -16,5 +16,5 @@ export const routes: Routes = [
   { path: 'user/:authorId', component: UserBioComponent },
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
-  { path: '**', redirectTo: '' }
+  { path: '**', redirectTo: '' },
 ];

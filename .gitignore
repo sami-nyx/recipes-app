@@ -1,7 +1,7 @@
 # This root .gitignore is a safety net for files created at the repo root
-# or in directories without their own .gitignore (nginx/, old-pipeline/,
-# .github/). recipes-backend/, recipes-ui/, and test/ each carry more
-# specific rules for their own stacks.
+# or in directories without their own .gitignore (nginx/, .github/).
+# recipes-backend/, recipes-ui/, and test/ each carry more specific rules
+# for their own stacks.
 
 # Environment variables & secrets (CRITICAL: never commit real .env files)
 .env

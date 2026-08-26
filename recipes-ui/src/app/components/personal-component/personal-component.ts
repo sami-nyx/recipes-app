@@ -18,20 +18,14 @@ import { Authenticated } from './authenticated/authenticated';
     MatButtonModule,
     MatIconModule,
     NotAuthenticated,
-    Authenticated
+    Authenticated,
   ],
   templateUrl: './personal-component.html',
-  styleUrl: './personal-component.css'
+  styleUrl: './personal-component.css',
 })
 export class PersonalComponent {
-
-private userService = inject(UserService);
+  private userService = inject(UserService);
 
   // Expose signals from UserService
   readonly isAuthenticated = this.userService.isAuthenticated;
-
-  onRegister(): void {
-    // Navigate to registration page or open auth modal
-    console.log('Register button clicked');
-  }
 }

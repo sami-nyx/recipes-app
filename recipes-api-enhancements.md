@@ -17,6 +17,17 @@ The app is small enough that this hasn't hurt yet, but the shape is already visi
 
 ## 1. Scalability
 
+- [x] `GET /api/recipes` gained a `?sort=` param - `newest` (default, unchanged behavior),
+  `prepTime`/`calories`/`cost` (ascending - quickest/lightest/cheapest first), validated
+  against a whitelist (`SORT_OPTIONS` in `recipe_controller.py`) with the same "invalid
+  falls back to default" leniency `page`/`pageSize` already had. Applied server-side, before
+  pagination - sorting only the already-fetched page would silently give a wrong answer past
+  page 1. Closes a real UI bug: `recipes-ui`'s Explore page already rendered a full "Sort by:
+  Newest / Prep Time / Calories / Cost" bar with working hover/active CSS, but none of the
+  four options had a click handler - it looked interactive and did nothing. Verified: 53/53
+  backend tests pass (5 new), and live through docker-compose (`?sort=cost`/`prepTime`/
+  `calories` each return ascending order; an invalid `?sort=` value returns `200` with the
+  default order instead of erroring).
 - [x] `GET /api/recipes` is now paginated — `?page=`/`?pageSize=` (default 20, capped at 100 server-side), applied via `.offset()/.limit()`. Response body stays a bare JSON array (no contract break); pagination metadata (`total`/`page`/`pageSize`) is exposed via `X-Total-Count`/`X-Page`/`X-Page-Size` response headers instead, so `recipes-ui` keeps working unmodified and only sees the first page until it's updated to read the headers. Verified live: the same endpoint that returned a 699KB body against the dev DB's 502 accumulated recipes now returns 18KB for the default page.
 - [x] N+1 queries in `Recipe.to_dict()` fixed alongside pagination — `selectinload` on `Recipe.author` and `Recipe.parts` → `RecipePart.ingredients`, so a page of recipes costs a small fixed number of queries instead of `1 + N + N + (N × parts)`.
 - [ ] Gunicorn `--workers 2 --threads 2` is hardcoded in both the Dockerfile `CMD` and `run_app.sh` — make it env-driven.

@@ -13,7 +13,6 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { UserService } from '../../services/user-service';
 
-
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -27,7 +26,7 @@ import { UserService } from '../../services/user-service';
     MatButtonModule,
     MatIconModule,
     MatSnackBarModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
   ],
   templateUrl: './login-component.html',
   styleUrl: './login-component.css',
@@ -45,7 +44,7 @@ export class LoginComponent {
   // Reactive Form definition
   readonly loginForm = this.fb.nonNullable.group({
     usernameOrEmail: ['sami_cooks', [Validators.required]],
-    password: ['SamiSecretPass123!', [Validators.required, Validators.minLength(6)]]
+    password: ['SamiSecretPass123!', [Validators.required, Validators.minLength(6)]],
   });
 
   togglePasswordVisibility(): void {
@@ -65,22 +64,18 @@ export class LoginComponent {
       next: (response) => {
         this.isLoading.set(false);
         this.snackBar.open(`Welcome back, ${response.user.name}!`, 'Close', {
-          duration: 3000
+          duration: 3000,
         });
         this.router.navigate(['/explore']);
       },
       error: (err) => {
         this.isLoading.set(false);
         console.error('Login failed:', err);
-        this.snackBar.open(
-          err.error?.message || 'Invalid username or password.',
-          'Dismiss',
-          {
-            duration: 5000,
-            panelClass: ['error-snackbar']
-          }
-        );
-      }
+        this.snackBar.open(err.error?.message || 'Invalid username or password.', 'Dismiss', {
+          duration: 5000,
+          panelClass: ['error-snackbar'],
+        });
+      },
     });
   }
 }

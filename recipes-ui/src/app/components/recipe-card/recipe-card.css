@@ -4,7 +4,9 @@
   max-width: 680px;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -15,7 +17,9 @@
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .recipe-card:hover {
@@ -115,7 +119,7 @@
   overflow: visible !important;
   position: relative;
   /* Push card down slightly so top overflow doesn't collide with upper elements */
-  margin-top: 30px; 
+  margin-top: 30px;
 }
 
 /* 2. Ensure the author header doesn't clip children */
@@ -139,9 +143,9 @@
   border: 4px solid #ffffff; /* Slightly thicker border for 100px size */
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
   margin-top: -40px;
-  margin-left: -40px; 
+  margin-left: -40px;
   /* Pull the avatar down so half sits in the header and half overlaps the image */
-  margin-bottom: -40px; 
+  margin-bottom: -40px;
   position: relative;
   z-index: 3;
 }

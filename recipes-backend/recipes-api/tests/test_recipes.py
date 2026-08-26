@@ -14,6 +14,16 @@ class TestRecipeRoutes(BaseTestCase):
                 db.session.add(Recipe(title=f"Recipe {i}"))
             db.session.commit()
 
+    def create_recipe_with(self, title, **fields):
+        """Insert a single recipe directly with explicit field overrides -
+        used by the sort tests, where prep_time/calories/cost need to
+        differ per recipe (create_recipes() above leaves them all at the
+        same model defaults, which is fine for pagination but useless for
+        asserting sort order)."""
+        with self.app.app_context():
+            db.session.add(Recipe(title=title, **fields))
+            db.session.commit()
+
 #=================================================================================
 #    authentication helper method to get JWT token for testing protected routes
 #=================================================================================
@@ -250,6 +260,68 @@ class TestRecipeRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(data['parts']), 1)
         self.assertEqual(data['parts'][0]['ingredients'][0]['name'], "Salt")
+
+#=================================================================================
+#    test get recipes sorting
+#=================================================================================
+    def test_get_recipes_defaults_to_newest_first(self):
+        """No ?sort= should behave exactly as before - newest first."""
+        self.create_recipe_with("First", prep_time_minutes=10)
+        self.create_recipe_with("Second", prep_time_minutes=5)
+
+        response = self.client.get('/api/recipes')
+        data = response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data[0]['title'], "Second")
+        self.assertEqual(data[1]['title'], "First")
+
+    def test_get_recipes_sort_by_prep_time_ascending(self):
+        """?sort=prepTime orders quickest-first."""
+        self.create_recipe_with("Slow", prep_time_minutes=30)
+        self.create_recipe_with("Quick", prep_time_minutes=5)
+        self.create_recipe_with("Medium", prep_time_minutes=15)
+
+        response = self.client.get('/api/recipes?sort=prepTime')
+        titles = [r['title'] for r in response.get_json()]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(titles, ["Quick", "Medium", "Slow"])
+
+    def test_get_recipes_sort_by_calories_ascending(self):
+        """?sort=calories orders lowest-calorie-first."""
+        self.create_recipe_with("Heavy", calories_per_100g=500)
+        self.create_recipe_with("Light", calories_per_100g=100)
+
+        response = self.client.get('/api/recipes?sort=calories')
+        titles = [r['title'] for r in response.get_json()]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(titles, ["Light", "Heavy"])
+
+    def test_get_recipes_sort_by_cost_ascending(self):
+        """?sort=cost orders cheapest-first."""
+        self.create_recipe_with("Pricey", cost_per_100g=9.99)
+        self.create_recipe_with("Cheap", cost_per_100g=0.50)
+
+        response = self.client.get('/api/recipes?sort=cost')
+        titles = [r['title'] for r in response.get_json()]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(titles, ["Cheap", "Pricey"])
+
+    def test_get_recipes_invalid_sort_falls_back_to_newest(self):
+        """An unrecognized ?sort= value shouldn't error - just use the
+        default, same leniency as invalid page/pageSize."""
+        self.create_recipe_with("First", prep_time_minutes=10)
+        self.create_recipe_with("Second", prep_time_minutes=5)
+
+        response = self.client.get('/api/recipes?sort=not-a-real-option')
+        data = response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data[0]['title'], "Second")
+        self.assertEqual(data[1]['title'], "First")
 
 #=================================================================================
 #    test create recipe with authentication

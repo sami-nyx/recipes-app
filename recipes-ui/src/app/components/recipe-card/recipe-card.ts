@@ -12,12 +12,7 @@ import { MatDialog } from '@angular/material/dialog';
 @Component({
   selector: 'app-recipe-card',
   standalone: true,
-  imports: [
-    CommonModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule
-  ],
+  imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule],
   templateUrl: './recipe-card.html',
   styleUrl: './recipe-card.css',
 })
@@ -27,16 +22,16 @@ export class RecipeCard {
   recipe = input.required<Recipe>();
   deleteClick = output<Recipe>(); // <--- New delete output
   // Outputs for user actions
-  
+
   favoriteToggle = output<Recipe>();
   cardClick = output<Recipe>(); // recipe id
   authorClick = output<Recipe>(); // author id or username
-  
+
   private router = inject(Router);
   private userService = inject(UserService);
   private dialog = inject(MatDialog); // <--- Inject MatDialog
   readonly isAuthenticated = this.userService.isAuthenticated;
-  
+
   isOwner(): boolean {
     return this.userService.isOwner(this.recipe().author?.id);
   }
@@ -60,7 +55,9 @@ export class RecipeCard {
   onToggleFavorite(event: Event): void {
     event.stopPropagation();
     const currentRecipe = this.recipe();
-    // Toggle state locally on the recipe object
+    // Local-only: there's no favorites endpoint on the backend, so this
+    // just flips isStarred/favsCount in memory via RecipeService - it
+    // isn't persisted and will revert on refresh.
     currentRecipe.isStarred = !currentRecipe.isStarred;
     this.favoriteToggle.emit(currentRecipe);
   }
@@ -73,8 +70,8 @@ export class RecipeCard {
         title: 'Delete Recipe',
         message: `Are you sure you want to delete "${this.recipe().title}"? This action cannot be undone.`,
         confirmText: 'Delete',
-        cancelText: 'Cancel'
-      }
+        cancelText: 'Cancel',
+      },
     });
 
     dialogRef.afterClosed().subscribe((confirmed: boolean) => {

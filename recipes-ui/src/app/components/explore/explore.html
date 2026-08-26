@@ -1,51 +1,68 @@
 <div class="explore-container">
   <!-- FILTER SIDEBAR -->
   <app-recipe-filter (filterChange)="onFilterChanged($event)" />
- 
- <mat-divider [vertical]="true"></mat-divider>
+
+  <mat-divider [vertical]="true"></mat-divider>
   <!-- MAIN RECIPE LIST -->
   <main class="content-area">
     <div class="sort-sub-bar">
       <span class="sort-label">Sort by:</span>
       <div class="sort-options">
-        <span class="sort-item active">Newest</span>
-        <span class="sort-item">Prep Time</span>
-        <span class="sort-item">Calories</span>
-        <span class="sort-item">Cost</span>
+        <span
+          class="sort-item"
+          [class.active]="activeSort() === 'newest'"
+          (click)="onSortChanged('newest')"
+          >Newest</span
+        >
+        <span
+          class="sort-item"
+          [class.active]="activeSort() === 'prepTime'"
+          (click)="onSortChanged('prepTime')"
+          >Prep Time</span
+        >
+        <span
+          class="sort-item"
+          [class.active]="activeSort() === 'calories'"
+          (click)="onSortChanged('calories')"
+          >Calories</span
+        >
+        <span
+          class="sort-item"
+          [class.active]="activeSort() === 'cost'"
+          (click)="onSortChanged('cost')"
+          >Cost</span
+        >
       </div>
-          <mat-divider [vertical]="false"></mat-divider>
-  
+      <mat-divider [vertical]="false"></mat-divider>
     </div>
 
     @if (isLoading()) {
       <div class="center-state">
         <mat-spinner diameter="48"></mat-spinner>
         <p>Fetching delicious recipes...</p>
-    
       </div>
     } @else if (filteredRecipes().length === 0) {
       <div class="center-state empty-state">
         <mat-icon>restaurant_menu</mat-icon>
         <h3>No recipes found</h3>
         <p>Try adjusting your search terms or increasing max prep time.</p>
-        
+
         <!-- Add Personal CTA card here -->
-        
       </div>
     } @else {
       <div class="recipe-grid">
-          <app-recipe-card
-  *ngFor="let recipe of filteredRecipes()"
-  [recipe]="recipe"
-  (cardClick)="viewRecipe($event)"
-  (authorClick)="viewAuthor($event)"
-  (deleteClick)="deleteRecipe($event)">
-</app-recipe-card>
-        
+        <app-recipe-card
+          *ngFor="let recipe of filteredRecipes()"
+          [recipe]="recipe"
+          (cardClick)="viewRecipe($event)"
+          (authorClick)="viewAuthor($event)"
+          (deleteClick)="deleteRecipe($event)"
+        >
+        </app-recipe-card>
       </div>
     }
   </main>
 
- <mat-divider [vertical]="true"></mat-divider>
-    <app-personal class="personal-cta-wrapper" />
+  <mat-divider [vertical]="true"></mat-divider>
+  <app-personal class="personal-cta-wrapper" />
 </div>

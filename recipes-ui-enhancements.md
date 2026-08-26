@@ -59,9 +59,68 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done
   `localStorage`; `deleteUser()` DELETEs and clears the session. Not yet wired into any
   component (no profile-edit/delete-account UI calls them yet) - that's a components-layer
   follow-up, not a services-layer gap.
-- [ ] **Leftover debug `console.log()`s** in `recipe.service.ts` (logs the API URL; one bare
-  call) and `user-service.ts` (logs the API URL and full `fullApiUrl` on every login
-  attempt). Removed while those files are being edited for the reasons above.
+- [x] **Leftover debug `console.log()`s** in `recipe.service.ts` (logged the API URL; one
+  bare call), `user-service.ts` (logged the API URL and full `fullApiUrl` on every login
+  attempt), `user-bio-component.ts` (logged the author id and fetched data on every load),
+  and a dead `PersonalComponent.onRegister()` method (unused - `NotAuthenticated`'s CTA
+  routes straight to `/login` via `routerLink`, never calls it) with its own stray log.
+  Removed in the same pass as wiring the two new methods into the UI (below).
+
+## 3. Wiring `updateUser()`/`deleteUser()`/`getRecipeById()`/`getAuthorById()` into the UI
+
+`getRecipeById()` (`view-recipe-component.ts`) and `getAuthorById()` (`user-bio-component.ts`)
+were already wired - verified working, no changes needed beyond the console.log cleanup above.
+`updateUser()`/`deleteUser()` had no caller anywhere; closed both gaps:
+
+- [x] **New `EditProfileDialogComponent`** (`components/edit-profile-dialog/`) - a Material
+  dialog with a reactive form (name/avatarUrl/bio, same validators as the register form),
+  calling `UserService.updateUser()`. One shared component rather than duplicating the form
+  per caller, since two different pages need to edit the same profile.
+- [x] **Wired into `authenticated.html`** (the signed-in user's own profile panel) - new
+  "Edit Profile" button opens the dialog; new "Delete Account" button reuses the existing
+  `ConfirmDialogComponent` (already used for recipe deletion) for a confirmation step, then
+  calls `UserService.deleteUser()` and navigates home on success.
+- [x] **Fixed a broken "Edit Profile" link in `user-bio-component.html`** (the public
+  `/user/:authorId` page, shown when viewing your own profile too) - found while wiring this
+  up: the markup was malformed (unclosed `<p>`/`<a>` tags) and the link had no click handler
+  at all, so it rendered as inert text; `onEditClick()` in the `.ts` file separately navigated
+  to `/profile/edit`, a route that doesn't exist in `app.routes.ts` and would have silently
+  redirected to the landing page via the wildcard route. Fixed the markup and pointed it at
+  the same `EditProfileDialogComponent`; after a successful edit, this page's own `userData`
+  (fetched separately, from `GET /api/users/author/<id>`, not the same object as
+  `UserService.currentUser`) is explicitly re-fetched so the displayed name/avatar/bio update
+  too.
+- [x] **Removed two dead stub files**: `confirm-dialog-component.html`/`.css` - the component
+  uses an inline `template:` string, so these were never rendered (default Angular CLI
+  schematic output, left behind unedited).
+- [x] **Ran Prettier (`--write`) across all of `src/`** per the project's existing
+  `.prettierrc` - 58 files reformatted, no content changes (verified via `tsc --noEmit` and
+  `ng build` both passing before and after).
+- [x] `components/register-component/html.back.html` - the unreferenced backup file flagged
+  above. Confirmed dead and deleted on request.
+
+Verified: `npx tsc --noEmit` clean and `ng build` succeeds (this project's Karma/Vitest test
+runner needs a browser package - `@vitest/browser-playwright` - not installed in this
+environment, so the component test suite itself couldn't be executed here).
+
+## 4. Small fixes and polish
+
+- [x] **`explore.html`'s "Sort by" bar wired up to a real `?sort=` param** on the backend
+  (see `recipes-api-enhancements.md` item 1) - `RecipeService.getRecipes()` now takes an
+  optional `RecipeSort`, `explore.ts` tracks `activeSort` and refetches on change, and the
+  four `<span>`s (already fully styled with hover/active states, just never bound to
+  anything) now call `onSortChanged()`. Sorting is server-side, matching how pagination
+  already works, since re-sorting only the loaded page would be wrong past page 1.
+- [x] **Documented `RecipeCard`'s favorite star as local-only** - a comment in both the
+  template and `onToggleFavorite()` now says explicitly that there's no favorites endpoint
+  on the backend, so toggling it doesn't persist and reverts on refresh (the underlying gap
+  itself is still tracked below, unchanged).
+- [x] **`.toggle-group` (the "Only My Recipes" toggle's wrapper) had no CSS rule at all** in
+  `recipe-filter.css` - along with `.sidebar`/`.filter-group`, also used in the template
+  but absent from the stylesheet, suggesting the CSS predates the current template
+  structure. Added `margin-bottom: 1.25rem` (matching the file's existing spacing scale) to
+  `.toggle-group` specifically; `.sidebar`/`.filter-group` are unaddressed - flagged, not
+  fixed, since that's a larger mismatch than what was asked.
 
 ## Explicitly out of scope for this pass
 

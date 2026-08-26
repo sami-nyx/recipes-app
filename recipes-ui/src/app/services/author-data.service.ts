@@ -15,17 +15,15 @@ export interface AuthorData {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AuthorDataService {
-
   constructor(private http: HttpClient) {}
 
   private readonly apiUrl = `${environment.fullApiUrl}/users`;
-  
 
   getAuthorById(id: string): Observable<AuthorData> {
-  // Directly return the HTTP request Observable
-  return this.http.get<AuthorData>(`${this.apiUrl}/author/${id}`);
-}
+    // Directly return the HTTP request Observable
+    return this.http.get<AuthorData>(`${this.apiUrl}/author/${id}`);
   }
+}

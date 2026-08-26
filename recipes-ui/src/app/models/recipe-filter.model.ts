@@ -1,5 +1,5 @@
 export interface RecipeFilter {
- query: string;
+  query: string;
   maxPrepTime: number;
   onlyMyRecipes?: boolean;
 }

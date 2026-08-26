@@ -31,11 +31,15 @@
       <!-- Title & Author Section -->
       <section class="header-section">
         <h1 class="recipe-title">{{ recipe()?.title }}</h1>
-        
+
         <div class="author-bar">
           <div class="author-info">
             @if (recipe()?.author?.avatarUrl) {
-              <img [src]="recipe()?.author?.avatarUrl" [alt]="recipe()?.author?.name" class="author-avatar" />
+              <img
+                [src]="recipe()?.author?.avatarUrl"
+                [alt]="recipe()?.author?.name"
+                class="author-avatar"
+              />
             } @else {
               <div class="author-avatar-fallback">
                 {{ recipe()?.author?.name?.charAt(0) }}
@@ -46,7 +50,7 @@
               <span class="author-handle">&#64;{{ recipe()?.author?.username }}</span>
             </div>
           </div>
-          <span class="created-date">{{ recipe()?.createdAt | date:'mediumDate' }}</span>
+          <span class="created-date">{{ recipe()?.createdAt | date: 'mediumDate' }}</span>
         </div>
       </section>
 
@@ -62,7 +66,9 @@
         <div class="stat-item">
           <mat-icon>schedule</mat-icon>
           <div class="stat-text">
-            <span class="stat-value">{{ (recipe()?.prepTimeMinutes || 0) + (recipe()?.cookTimeMinutes || 0) }} mins</span>
+            <span class="stat-value"
+              >{{ (recipe()?.prepTimeMinutes || 0) + (recipe()?.cookTimeMinutes || 0) }} mins</span
+            >
             <span class="stat-label">Total Time</span>
           </div>
         </div>
@@ -93,7 +99,7 @@
           <div class="stat-item">
             <mat-icon>attach_money</mat-icon>
             <div class="stat-text">
-              <span class="stat-value">${{ recipe()?.costPer100g | number:'1.2-2' }}</span>
+              <span class="stat-value">${{ recipe()?.costPer100g | number: '1.2-2' }}</span>
               <span class="stat-label">per 100g</span>
             </div>
           </div>

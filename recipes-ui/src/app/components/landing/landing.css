@@ -25,9 +25,9 @@
   margin: 0.5rem 0;
 }
 .subtitle {
-  min-height: 50px;/* Adjust space: 0.25rem (small), 0.5rem (medium), 1rem (large) */
+  min-height: 50px; /* Adjust space: 0.25rem (small), 0.5rem (medium), 1rem (large) */
   padding-top: 10px;
-  display: block;      /* Ensures margin applies reliably if it's a <span> */
+  display: block; /* Ensures margin applies reliably if it's a <span> */
 }
 
 .hero .subtitle {

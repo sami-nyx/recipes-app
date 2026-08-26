@@ -4,5 +4,5 @@ export const environment = {
   apiPort: '80',
   get fullApiUrl(): string {
     return `${this.apiUrl}:${this.apiPort}/api`;
-  }
+  },
 };
