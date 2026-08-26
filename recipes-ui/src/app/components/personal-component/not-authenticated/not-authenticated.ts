@@ -7,14 +7,7 @@ import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-not-authenticated',
-  imports: [
-    RouterLink,
-    CommonModule,
-    RouterLink,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule
-  ],
+  imports: [RouterLink, CommonModule, RouterLink, MatCardModule, MatButtonModule, MatIconModule],
   templateUrl: './not-authenticated.html',
   styleUrl: './not-authenticated.css',
 })

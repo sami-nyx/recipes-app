@@ -24,7 +24,7 @@ export interface ConfirmDialogData {
         {{ data.confirmText || 'Delete' }}
       </button>
     </mat-dialog-actions>
-  `
+  `,
 })
 export class ConfirmDialogComponent {
   readonly dialogRef = inject(MatDialogRef<ConfirmDialogComponent>);

@@ -14,17 +14,17 @@ import { UserService } from '../../services/user-service';
   selector: 'app-recipe-filter',
   standalone: true,
   imports: [
-    CommonModule, 
-    FormsModule, 
-    MatFormFieldModule, 
-    MatInputModule, 
-    MatIconModule, 
+    CommonModule,
+    FormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatIconModule,
     MatSliderModule,
     MatButtonModule,
-    MatSlideToggleModule // <--- Add to imports
+    MatSlideToggleModule, // <--- Add to imports
   ],
   templateUrl: './recipe-filter.html',
-  styleUrl: './recipe-filter.css'
+  styleUrl: './recipe-filter.css',
 })
 export class RecipeFilterComponent {
   filterChange = output<RecipeFilter>();
@@ -40,7 +40,7 @@ export class RecipeFilterComponent {
     this.filterChange.emit({
       query: this.searchQuery(),
       maxPrepTime: this.maxPrepTime(),
-      onlyMyRecipes: this.onlyMyRecipes()
+      onlyMyRecipes: this.onlyMyRecipes(),
     });
   }
 

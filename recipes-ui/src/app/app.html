@@ -8,12 +8,11 @@
 
   <!-- Quick Nav Links -->
   <nav class="nav-links">
-
     @if (!isAuthenticated()) {
-    <button mat-button routerLink="/explore" routerLinkActive="active-link">
-      <mat-icon>explore</mat-icon>
-      Explore
-    </button>
+      <button mat-button routerLink="/explore" routerLinkActive="active-link">
+        <mat-icon>explore</mat-icon>
+        Explore
+      </button>
     }
     @if (isAuthenticated()) {
       <!-- Authenticated User Menu / Options -->
@@ -32,9 +31,7 @@
         <mat-icon>login</mat-icon>
         Sign In
       </button>
-      <button mat-raised-button color="accent" routerLink="/register">
-        Register
-      </button>
+      <button mat-raised-button color="accent" routerLink="/register">Register</button>
     }
   </nav>
 </mat-toolbar>

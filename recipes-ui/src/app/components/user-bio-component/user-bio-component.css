@@ -9,6 +9,28 @@
   padding: 2rem 1.5rem;
 }
 
+.edit-profile-link {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  text-align: right;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #3f51b5;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.link-button:hover {
+  color: #303f9f;
+}
+
 /* Vertical Stacking Layout */
 .profile-layout {
   display: flex;

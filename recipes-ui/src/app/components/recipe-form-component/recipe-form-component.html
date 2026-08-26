@@ -1,33 +1,43 @@
 <div class="form-container">
   <div class="form-wrapper">
-    
     <div class="form-header">
       <h2>{{ isEditMode ? 'Edit Recipe' : 'Create New Recipe' }}</h2>
       <button mat-stroked-button routerLink="/explore">Cancel</button>
       <button type="button" mat-stroked-button color="accent" (click)="fillMockData()">
-  ⚡ Auto-fill Test Data
-</button>
+        ⚡ Auto-fill Test Data
+      </button>
     </div>
 
     <form [formGroup]="recipeForm" (ngSubmit)="onSubmit()" class="recipe-form">
-      
       <!-- Basic Details Section -->
       <mat-card class="section-card">
         <mat-card-header>
           <mat-card-title>General Information</mat-card-title>
         </mat-card-header>
         <mat-card-content class="form-grid">
-          
           <mat-form-field appearance="outline" class="col-span-2">
             <mat-label>Recipe Title</mat-label>
-            <input matInput formControlName="title" placeholder="e.g., Creamy Garlic Parmesan Pasta" />
-            <mat-error *ngIf="recipeForm.get('title')?.hasError('required')">Title is required</mat-error>
+            <input
+              matInput
+              formControlName="title"
+              placeholder="e.g., Creamy Garlic Parmesan Pasta"
+            />
+            <mat-error *ngIf="recipeForm.get('title')?.hasError('required')"
+              >Title is required</mat-error
+            >
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="col-span-2">
             <mat-label>Description</mat-label>
-            <textarea matInput formControlName="description" rows="3" placeholder="Brief overview of the dish..."></textarea>
-            <mat-error *ngIf="recipeForm.get('description')?.hasError('required')">Description is required</mat-error>
+            <textarea
+              matInput
+              formControlName="description"
+              rows="3"
+              placeholder="Brief overview of the dish..."
+            ></textarea>
+            <mat-error *ngIf="recipeForm.get('description')?.hasError('required')"
+              >Description is required</mat-error
+            >
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="col-span-2">
@@ -64,15 +74,14 @@
             <mat-label>Cost per 100g ($/€)</mat-label>
             <input matInput type="number" step="0.01" formControlName="costPer100g" />
           </mat-form-field>
-
         </mat-card-content>
       </mat-card>
 
       <!-- Recipe Parts Section -->
       <div formArrayName="parts" class="parts-container">
-        <div 
-          *ngFor="let part of parts.controls; let pIndex = index" 
-          [formGroupName]="pIndex" 
+        <div
+          *ngFor="let part of parts.controls; let pIndex = index"
+          [formGroupName]="pIndex"
           class="part-block"
         >
           <mat-card class="section-card">
@@ -82,10 +91,10 @@
                 <input matInput formControlName="title" />
               </mat-form-field>
 
-              <button 
-                type="button" 
-                mat-icon-button 
-                color="warn" 
+              <button
+                type="button"
+                mat-icon-button
+                color="warn"
                 (click)="removePart(pIndex)"
                 [disabled]="parts.length === 1"
                 title="Remove Part"
@@ -98,9 +107,9 @@
               <!-- Ingredients List for this Part -->
               <h4>Ingredients</h4>
               <div formArrayName="ingredients" class="nested-array">
-                <div 
-                  *ngFor="let ing of getPartIngredients(pIndex).controls; let iIndex = index" 
-                  [formGroupName]="iIndex" 
+                <div
+                  *ngFor="let ing of getPartIngredients(pIndex).controls; let iIndex = index"
+                  [formGroupName]="iIndex"
                   class="ingredient-row"
                 >
                   <mat-form-field appearance="outline" class="flex-2">
@@ -118,12 +127,22 @@
                     <input matInput formControlName="unit" placeholder="g, ml, tbsp" />
                   </mat-form-field>
 
-                  <button type="button" mat-icon-button color="warn" (click)="removeIngredient(pIndex, iIndex)">
+                  <button
+                    type="button"
+                    mat-icon-button
+                    color="warn"
+                    (click)="removeIngredient(pIndex, iIndex)"
+                  >
                     <mat-icon>remove_circle_outline</mat-icon>
                   </button>
                 </div>
-                
-                <button type="button" mat-stroked-button (click)="addIngredient(pIndex)" class="add-sub-btn">
+
+                <button
+                  type="button"
+                  mat-stroked-button
+                  (click)="addIngredient(pIndex)"
+                  class="add-sub-btn"
+                >
                   <mat-icon>add</mat-icon> Add Ingredient
                 </button>
               </div>
@@ -133,8 +152,8 @@
               <!-- Instructions Steps for this Part -->
               <h4>Instructions / Steps</h4>
               <div formArrayName="instructions" class="nested-array">
-                <div 
-                  *ngFor="let step of getPartInstructions(pIndex).controls; let sIndex = index" 
+                <div
+                  *ngFor="let step of getPartInstructions(pIndex).controls; let sIndex = index"
                   class="instruction-row"
                 >
                   <span class="step-number">{{ sIndex + 1 }}.</span>
@@ -143,16 +162,25 @@
                     <textarea matInput [formControlName]="sIndex" rows="2"></textarea>
                   </mat-form-field>
 
-                  <button type="button" mat-icon-button color="warn" (click)="removeInstructionStep(pIndex, sIndex)">
+                  <button
+                    type="button"
+                    mat-icon-button
+                    color="warn"
+                    (click)="removeInstructionStep(pIndex, sIndex)"
+                  >
                     <mat-icon>remove_circle_outline</mat-icon>
                   </button>
                 </div>
 
-                <button type="button" mat-stroked-button (click)="addInstructionStep(pIndex)" class="add-sub-btn">
+                <button
+                  type="button"
+                  mat-stroked-button
+                  (click)="addInstructionStep(pIndex)"
+                  class="add-sub-btn"
+                >
                   <mat-icon>add</mat-icon> Add Step
                 </button>
               </div>
-
             </mat-card-content>
           </mat-card>
         </div>
@@ -167,12 +195,17 @@
 
       <!-- Form Submission -->
       <div class="form-actions">
-        <button mat-flat-button color="primary" type="submit" class="submit-btn" [disabled]="recipeForm.invalid || isLoading">
+        <button
+          mat-flat-button
+          color="primary"
+          type="submit"
+          class="submit-btn"
+          [disabled]="recipeForm.invalid || isLoading"
+        >
           <mat-icon>{{ isEditMode ? 'save' : 'publish' }}</mat-icon>
           {{ isEditMode ? 'Update Recipe' : 'Publish Recipe' }}
         </button>
       </div>
-
     </form>
   </div>
 </div>

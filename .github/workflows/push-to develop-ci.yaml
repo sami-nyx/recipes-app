@@ -103,7 +103,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.ECR_PUSH_ROLE_ARN }}
-          aws-region: ${{ vars.IMAGE_REPO_REGION }}
+          aws-region: ${{ vars.AWS_REGION }}
           disable-retry: true
 
 
@@ -127,7 +127,7 @@ jobs:
           IMAGE_TAG: ${{ needs.integration-tests-and-publish.outputs.image-tag }}
           IMAGE_URI: ${{ needs.integration-tests-and-publish.outputs.image-uri }}
           IMAGE_REPO: ${{ vars.IMAGE_REPO_NAME }}
-          AWS_REGION: ${{ vars.IMAGE_REPO_REGION }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
         run: |
           set -euo pipefail
 
@@ -373,160 +373,3 @@ jobs:
 
             ${{ needs.create-main-pr.outputs.pr-url }}
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
-# name: Development Pipeline (push to develop)
-
-# on:
-#   push:
-#     branches:
-#       - main
-
-# concurrency:
-#   group: recipes-api-develop
-#   cancel-in-progress: false
-
-# jobs:
-
-#   # ============================================================================
-#   # Unit Tests
-#   # ============================================================================
-
-#   unit-tests:
-#     uses: ./.github/workflows/unit-tests.yaml
-
-
-#   # ============================================================================
-#   # Integration Tests + ECR Publish
-#   # ===========================================================================
-
-#   integration-tests-and-publish:
-#     needs:
-#       - unit-tests
-
-#     permissions:
-#       contents: read
-#       id-token: write
-
-#     secrets: inherit
-
-#     uses: ./.github/workflows/integration-tests.yaml
-#     with:
-#       publish-image: true
-
-
-#   # ============================================================================
-#   # Tag Git Commit
-#   # ============================================================================
-
-#   tag-commit:
-#     name: Verify ECR and Tag Commit
-
-#     needs:
-#       - integration-tests-and-publish
-
-#     runs-on: ubuntu-22.04
-
-#     permissions:
-#       contents: write
-#       id-token: write
-
-#     steps:
-#       # ==========================================================================
-#       # Checkout
-#       # ==========================================================================
-
-#       - name: Checkout Code
-#         uses: actions/checkout@v6
-#         with:
-#           fetch-depth: 0
-
-
-#       # ==========================================================================
-#       # AWS Authentication
-#       # ==========================================================================
-
-#       - name: Configure AWS Credentials
-#         uses: aws-actions/configure-aws-credentials@v6
-#         with:
-#           role-to-assume: ${{ vars.ECR_PUSH_ROLE_ARN }}
-#           aws-region: ${{ vars.IMAGE_REPO_REGION }}
-#           disable-retry: true
-
-
-#       # ==========================================================================
-#       # ECR Login
-#       # ==========================================================================
-
-#       - name: Login to Amazon ECR
-#         id: ecr-login
-#         uses: aws-actions/amazon-ecr-login@v2
-
-
-#       # ==========================================================================
-#       # Verify Published Image
-#       # ==========================================================================
-
-#       - name: Verify Published Image in ECR
-#         id: verify-image
-#         shell: bash
-#         env:
-#           IMAGE_TAG: ${{ needs.integration-tests-and-publish.outputs.image-tag }}
-#           IMAGE_URI: ${{ needs.integration-tests-and-publish.outputs.image-uri }}
-#           IMAGE_REPO: ${{ vars.IMAGE_REPO_NAME }}
-#           AWS_REGION: ${{ vars.IMAGE_REPO_REGION }}
-#         run: |
-#           set -euo pipefail
-
-#           if [ -z "$IMAGE_TAG" ]; then
-#             echo "::error::Reusable workflow did not return an image tag"
-#             exit 1
-#           fi
-
-#           if [ -z "$IMAGE_URI" ]; then
-#             echo "::error::Reusable workflow did not return an image URI"
-#             exit 1
-#           fi
-
-#           echo "Checking ECR for:"
-#           echo "  Repository: $IMAGE_REPO"
-#           echo "  Tag:        $IMAGE_TAG"
-#           echo "  URI:        $IMAGE_URI"
-
-#           IMAGE_DIGEST="$(
-#             aws ecr describe-images \
-#               --repository-name "$IMAGE_REPO" \
-#               --image-ids "imageTag=$IMAGE_TAG" \
-#               --region "$AWS_REGION" \
-#               --query 'imageDetails[0].imageDigest' \
-#               --output text
-#           )"
-
-#           if [ -z "$IMAGE_DIGEST" ] || [ "$IMAGE_DIGEST" = "None" ]; then
-#             echo "::error::Image $IMAGE_REPO:$IMAGE_TAG was not found in ECR"
-#             exit 1
-#           fi
-
-#           echo "Successfully verified image in ECR"
-#           echo "Tag:    $IMAGE_TAG"
-#           echo "Digest: $IMAGE_DIGEST"
-
-#           echo "image-digest=$IMAGE_DIGEST" >> "$GITHUB_OUTPUT"
-
-
-#       # ==========================================================================
-#       # Git Tag
-#       # ==========================================================================
-
-#       - name: Tag Current Commit
-#         shell: bash
-#         env:
-#           IMAGE_TAG: ${{ needs.integration-tests-and-publish.outputs.image-tag }}
-#         run: |
-#           set -euo pipefail
-
-#           git config user.name "github-actions[bot]"
-#           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-#           echo "Tagging commit $GITHUB_SHA with $IMAGE_TAG"
-
-#           git tag "$IMAGE_TAG" "$GITHUB_SHA"
-#           git push origin "$IMAGE_TAG"

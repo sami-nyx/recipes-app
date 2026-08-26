@@ -12,4 +12,4 @@ exec gunicorn \
   --timeout 60 \
   --access-logfile - \
   --error-logfile - \
-  app:app
+  'app:create_app()'

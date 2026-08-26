@@ -12,10 +12,10 @@ import { UserService } from './services/user-service';
     RouterLinkActive,
     MatToolbarModule,
     MatButtonModule,
-    MatIconModule
+    MatIconModule,
   ],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
 })
 export class App {
   protected readonly title = signal('recipes-ui');

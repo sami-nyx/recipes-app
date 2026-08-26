@@ -1,7 +1,7 @@
 import unittest
 
 from app import create_app
-from models.user import db
+from extensions import db
 from models.recipe import Recipe, RecipePart, Ingredient
 
 
@@ -23,7 +23,9 @@ class BaseTestCase(unittest.TestCase):
             'SECRET_KEY':
                 'super-secret-test-key-must-be-at-least-32-bytes-long!',
 
-            'CORS_ORIGIN': 'http://localhost:4200'
+            'CORS_ORIGIN': 'http://localhost:4200',
+
+            'MAX_CONTENT_LENGTH': 1 * 1024 * 1024
         })
 
         self.client = self.app.test_client()
