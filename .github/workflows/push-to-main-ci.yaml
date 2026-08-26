@@ -151,7 +151,7 @@ jobs:
             needs.update-gitops.result == 'success' &&
             needs.deploy-ui.result == 'success'
           }}
-        uses: ./.github/actions/slack-notify
+        uses: ./.github/actions/notify-slack
         with:
           status: success
           title: "Production deployment succeeded"
@@ -167,7 +167,7 @@ jobs:
             needs.update-gitops.result != 'success' ||
             needs.deploy-ui.result != 'success'
           }}
-        uses: ./.github/actions/slack-notify
+        uses: ./.github/actions/notify-slack
         with:
           status: failure
           title: "Production deployment failed"
