@@ -6,3 +6,4 @@ export const environment = {
     return this.apiPort ? `${this.apiUrl}:${this.apiPort}/api` : `${this.apiUrl}/api`;
   },
 };
+  
