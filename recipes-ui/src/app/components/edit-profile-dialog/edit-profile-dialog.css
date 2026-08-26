@@ -1,0 +1,19 @@
+.full-width {
+  width: 100%;
+}
+
+mat-dialog-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 320px;
+}
+
+.error-message {
+  color: #b3261e;
+  font-size: 0.875rem;
+  margin: 0 0 0.5rem;
+}
+
+button[type='submit'] mat-spinner {
+  display: inline-block;
+}

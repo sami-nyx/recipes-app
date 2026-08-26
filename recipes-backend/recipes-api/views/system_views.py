@@ -1,7 +1,8 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, current_app, jsonify
 from sqlalchemy import text
 
-from models.user import db
+from extensions import db
+from app_logging import app_logger
 
 
 system_bp = Blueprint(
@@ -9,6 +10,24 @@ system_bp = Blueprint(
     __name__,
     url_prefix='/system'
 )
+
+
+def _check_database():
+    """Returns "ok" if a trivial query succeeds, "unreachable" otherwise.
+
+    Deliberately returns a category, not the exception itself - these
+    endpoints sit on the public internet (the Ingress uses a catch-all
+    "/" path), so the real error goes to the log, not the response body.
+    """
+    try:
+        db.session.execute(text("SELECT 1"))
+        return "ok"
+    except Exception as e:
+        app_logger.warning(
+            "Database check failed",
+            extra={"props": {"action": "SYSTEM_CHECK", "check": "database", "error": str(e)}}
+        )
+        return "unreachable"
 
 
 # ============================================================
@@ -24,7 +43,8 @@ def health():
     This should NOT depend on external services such as PostgreSQL.
     """
     return jsonify({
-        "status": "healthy"
+        "status": "healthy",
+        "version": current_app.config.get('APP_VERSION')
     }), 200
 
 
@@ -40,18 +60,18 @@ def ready():
     Indicates whether this pod can currently serve application traffic.
     PostgreSQL connectivity is required for the API to function.
     """
+    database_status = _check_database()
 
-    try:
-        db.session.execute(text("SELECT 1"))
-
+    if database_status == "ok":
         return jsonify({
-            "status": "ready"
+            "status": "ready",
+            "checks": {"database": database_status}
         }), 200
 
-    except Exception:
-        return jsonify({
-            "status": "not_ready"
-        }), 503
+    return jsonify({
+        "status": "not_ready",
+        "checks": {"database": database_status}
+    }), 503
 
 
 # ============================================================
@@ -67,15 +87,15 @@ def startup():
     PostgreSQL connectivity is checked because the API is not useful
     until its database is reachable.
     """
+    database_status = _check_database()
 
-    try:
-        db.session.execute(text("SELECT 1"))
-
+    if database_status == "ok":
         return jsonify({
-            "status": "started"
+            "status": "started",
+            "checks": {"database": database_status}
         }), 200
 
-    except Exception:
-        return jsonify({
-            "status": "starting"
-        }), 503
+    return jsonify({
+        "status": "starting",
+        "checks": {"database": database_status}
+    }), 503

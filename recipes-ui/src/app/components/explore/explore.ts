@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { RecipeService } from '../../services/recipe.service';
 import { UserService } from '../../services/user-service'; // <--- Import UserService
 import { RecipeFilter } from '../../models/recipe-filter.model';
-import { Recipe } from '../../models/recipes.model';
+import { Recipe, RecipeSort } from '../../models/recipes.model';
 
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -27,7 +27,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
     MatDividerModule,
   ],
   templateUrl: './explore.html',
-  styleUrl: './explore.css'
+  styleUrl: './explore.css',
 })
 export class Explore implements OnInit {
   private router = inject(Router);
@@ -37,6 +37,7 @@ export class Explore implements OnInit {
   private snackBar = inject(MatSnackBar);
   isLoading = signal<boolean>(true);
   activeFilter = signal<RecipeFilter>({ query: '', maxPrepTime: 60, onlyMyRecipes: false });
+  activeSort = signal<RecipeSort>('newest');
   recipes = this.recipeService.recipes;
 
   filteredRecipes = computed(() => {
@@ -46,9 +47,10 @@ export class Explore implements OnInit {
     const onlyMine = filter.onlyMyRecipes;
     const currentUserId = this.userService.currentUser()?.id; // Assumes currentUser signal on UserService
 
-    return this.recipes().filter(recipe => {
-      const matchesSearch = recipe.title.toLowerCase().includes(query) ||
-                            recipe.description.toLowerCase().includes(query);
+    return this.recipes().filter((recipe) => {
+      const matchesSearch =
+        recipe.title.toLowerCase().includes(query) ||
+        recipe.description.toLowerCase().includes(query);
       const matchesTime = recipe.prepTimeMinutes <= maxTime;
       const matchesAuthor = !onlyMine || (currentUserId && recipe.author?.id === currentUserId);
 
@@ -57,14 +59,27 @@ export class Explore implements OnInit {
   });
 
   ngOnInit(): void {
-    this.recipeService.getRecipes().subscribe({
-      next: () => this.isLoading.set(false),
-      error: () => this.isLoading.set(false)
-    });
+    this.fetchRecipes();
   }
 
   onFilterChanged(newFilter: RecipeFilter): void {
     this.activeFilter.set(newFilter);
+  }
+
+  onSortChanged(sort: RecipeSort): void {
+    if (sort === this.activeSort()) {
+      return;
+    }
+    this.activeSort.set(sort);
+    this.fetchRecipes();
+  }
+
+  private fetchRecipes(): void {
+    this.isLoading.set(true);
+    this.recipeService.getRecipes(this.activeSort()).subscribe({
+      next: () => this.isLoading.set(false),
+      error: () => this.isLoading.set(false),
+    });
   }
 
   toggleFavorite(recipe: Recipe): void {
@@ -73,22 +88,21 @@ export class Explore implements OnInit {
   }
 
   viewRecipe(recipe: Recipe): void {
-     this.router.navigate(['/recipes', recipe.id]);
+    this.router.navigate(['/recipes', recipe.id]);
   }
-  
+
   viewAuthor(recipe: Recipe): void {
-     this.router.navigate(['/user', recipe.author.id]);
+    this.router.navigate(['/user', recipe.author.id]);
   }
 
   deleteRecipe(recipe: Recipe): void {
-    
-  this.recipeService.deleteRecipe(recipe.id).subscribe({
-    next: () => {
-      this.snackBar.open(`successfully deleted recipe: ${recipe.title}!`, 'Close', {
-          duration: 3000
+    this.recipeService.deleteRecipe(recipe.id).subscribe({
+      next: () => {
+        this.snackBar.open(`successfully deleted recipe: ${recipe.title}!`, 'Close', {
+          duration: 3000,
         });
-    },
-    error: (err) => console.error('Failed to delete recipe:', err)
-  });
-}
+      },
+      error: (err) => console.error('Failed to delete recipe:', err),
+    });
+  }
 }

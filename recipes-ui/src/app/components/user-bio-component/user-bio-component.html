@@ -30,9 +30,8 @@
 
         <div class="profile-actions">
           @if (!isOwner() && isAuthenticated()) {
-            
-            <button 
-              mat-flat-button 
+            <button
+              mat-flat-button
               [color]="isFollowing() ? 'basic' : 'primary'"
               class="follow-btn"
               (click)="onFollowClick($event)"
@@ -40,7 +39,6 @@
               {{ isFollowing() ? 'Following' : 'Follow' }}
             </button>
           }
-
         </div>
       </header>
 
@@ -75,14 +73,15 @@
         @if (user.joinedDate) {
           <div class="joined-date">
             <mat-icon class="meta-icon">calendar_today</mat-icon>
-            <span>Member since {{ user.joinedDate | date:'MMMM yyyy' }}</span>
+            <span>Member since {{ user.joinedDate | date: 'MMMM yyyy' }}</span>
           </div>
         }
       </footer>
     </div>
   }
 </div>
-@if (isAuthenticated() && currentUser(); as user) {
+@if (isOwner() && isAuthenticated()) {
   <p class="edit-profile-link">
-    <a >Edit Profile</a>
+    <button type="button" class="link-button" (click)="onEditClick()">Edit Profile</button>
+  </p>
 }

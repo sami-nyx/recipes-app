@@ -1,5 +1,4 @@
 <mat-card class="recipe-card" appearance="outlined" (click)="onCardClick()">
-
   <div class="author-header clickable" (click)="onAuthorClick($event)">
     <div class="author-info">
       @if (recipe().author.avatarUrl) {
@@ -14,7 +13,7 @@
         <span class="author-handle">&#64;{{ recipe().author.username }}</span>
       </div>
     </div>
-    <span class="created-date">{{ recipe().createdAt | date:'shortDate' }}</span>
+    <span class="created-date">{{ recipe().createdAt | date: 'shortDate' }}</span>
   </div>
 
   <!-- Image Header / Fallback Placeholder -->
@@ -28,7 +27,9 @@
 
   <mat-card-header>
     <mat-card-title>{{ recipe().title }}</mat-card-title>
-    <mat-card-subtitle>{{ recipe().prepTimeMinutes + recipe().cookTimeMinutes }} mins total</mat-card-subtitle>
+    <mat-card-subtitle
+      >{{ recipe().prepTimeMinutes + recipe().cookTimeMinutes }} mins total</mat-card-subtitle
+    >
   </mat-card-header>
 
   <!-- Card Body & Metrics -->
@@ -39,7 +40,7 @@
     <div class="metrics-row">
       @if (recipe().costPer100g) {
         <span class="metric-badge cost">
-          <mat-icon>attach_money</mat-icon> {{ recipe().costPer100g | number:'1.2-2' }}/100g
+          <mat-icon>attach_money</mat-icon> {{ recipe().costPer100g | number: '1.2-2' }}/100g
         </span>
       }
       @if (recipe().caloriesPer100g) {
@@ -52,6 +53,10 @@
 
   <!-- Card Footer / Actions -->
   <mat-card-actions align="end" class="card-actions">
+    <!-- Favorite star: local-only for now - there's no favorites endpoint
+         on the backend yet, so toggling this updates favsCount in memory
+         (see RecipeService.toggleFavorite) but doesn't persist and will
+         revert on refresh. -->
     <button mat-icon-button (click)="onToggleFavorite($event)" class="fav-button">
       <mat-icon [class.starred]="recipe().isStarred">
         {{ recipe().isStarred ? 'star' : 'star_border' }}
@@ -64,9 +69,13 @@
       <button mat-icon-button (click)="onEdit($event)" aria-label="Edit recipe" title="Edit Recipe">
         <mat-icon>edit</mat-icon>
       </button>
-      <button mat-icon-button color="warn" 
-      (click)="onDelete($event)" 
-      aria-label="Delete recipe" title="Delete Recipe">
+      <button
+        mat-icon-button
+        color="warn"
+        (click)="onDelete($event)"
+        aria-label="Delete recipe"
+        title="Delete Recipe"
+      >
         <mat-icon>delete</mat-icon>
       </button>
     }

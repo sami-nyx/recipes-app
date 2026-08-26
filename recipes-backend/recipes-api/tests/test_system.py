@@ -20,6 +20,7 @@ class TestSystemRoutes(BaseTestCase):
             data.get('status'),
             'healthy'
         )
+        self.assertIn('version', data)
 
     # ============================================================
     # Readiness probe - database is available
@@ -36,6 +37,7 @@ class TestSystemRoutes(BaseTestCase):
             data.get('status'),
             'ready'
         )
+        self.assertEqual(data.get('checks'), {'database': 'ok'})
 
     # ============================================================
     # Readiness probe - database is unavailable
@@ -57,6 +59,7 @@ class TestSystemRoutes(BaseTestCase):
             data.get('status'),
             'not_ready'
         )
+        self.assertEqual(data.get('checks'), {'database': 'unreachable'})
 
     # ============================================================
     # Startup probe - application initialization succeeded
@@ -73,6 +76,7 @@ class TestSystemRoutes(BaseTestCase):
             data.get('status'),
             'started'
         )
+        self.assertEqual(data.get('checks'), {'database': 'ok'})
 
     # ============================================================
     # Startup probe - database is unavailable
@@ -94,3 +98,4 @@ class TestSystemRoutes(BaseTestCase):
             data.get('status'),
             'starting'
         )
+        self.assertEqual(data.get('checks'), {'database': 'unreachable'})

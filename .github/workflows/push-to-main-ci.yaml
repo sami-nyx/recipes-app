@@ -29,6 +29,7 @@ jobs:
         with:
           major-minor-patch: patch
 
+
       - name: Checkout GitOps repository
         uses: actions/checkout@v4
         with:
@@ -43,7 +44,7 @@ jobs:
       - name: Update recipes-api image tag
         working-directory: ./gitops
         env:
-          IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
+          IMAGE_TAG: ${{ steps.resolve-tag.outputs.LATEST_TAG }}
         run: |
           yq -i '.recipesApi.imageTag = strenv(IMAGE_TAG)' \
             apps/recipes-api/values.yaml
@@ -53,6 +54,7 @@ jobs:
         env:
           IMAGE_TAG: ${{ steps.resolve-tag.outputs.LATEST_TAG }}
         run: |
+          echo "latest tag:$IMAGE_TAG"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
@@ -111,8 +113,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: arn:aws:iam::889867978066:role/gh-actions-s3-push-role
-          aws-region: ap-south-1
+          role-to-assume: ${{ vars.S3_PUSH_ROLE_ARN }} 
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Deploy UI to S3
         working-directory: recipes-ui
@@ -129,8 +131,6 @@ jobs:
           aws cloudfront create-invalidation \
             --distribution-id "$DISTRIBUTION_ID" \
             --paths "/*"
-
-
   notify:
     name: Notify Slack
     runs-on: ubuntu-latest
@@ -142,8 +142,11 @@ jobs:
     if: ${{ always() }}
 
     steps:
-      - name: Checkout repository
+      - name: Checkout local action directory
         uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/actions/notify-slack
 
       - name: Notify success
         if: >-
@@ -151,7 +154,7 @@ jobs:
             needs.update-gitops.result == 'success' &&
             needs.deploy-ui.result == 'success'
           }}
-        uses: ./.github/actions/slack-notify
+        uses: ./.github/actions/notify-slack
         with:
           status: success
           title: "Production deployment succeeded"

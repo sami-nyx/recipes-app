@@ -22,7 +22,15 @@ ENV/
 # Testing & Coverage Tools
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
+
+# Tests themselves - not needed at runtime, don't ship them in the image
+tests/
+
+# Lint/type-checker caches
+.mypy_cache/
+.ruff_cache/
 
 # IDEs and Editors
 .vscode/
@@ -38,3 +46,6 @@ Dockerfile
 
 # Documentation & Markdown
 README.md
+
+# Logs
+*.log

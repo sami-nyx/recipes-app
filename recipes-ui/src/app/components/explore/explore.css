@@ -4,7 +4,9 @@
   box-sizing: border-box;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -82,7 +84,9 @@
   max-width: 680px; /* Widens the card for single-column layout */
   border-radius: 12px;
   overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .recipe-card:hover {
@@ -182,7 +186,7 @@
 @media (min-width: 840px) {
   .explore-container {
     flex-direction: row;
-    align-items: stretch; 
+    align-items: stretch;
   }
 }
 

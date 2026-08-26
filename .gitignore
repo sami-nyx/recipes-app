@@ -1,0 +1,31 @@
+# This root .gitignore is a safety net for files created at the repo root
+# or in directories without their own .gitignore (nginx/, .github/).
+# recipes-backend/, recipes-ui/, and test/ each carry more specific rules
+# for their own stacks.
+
+# Environment variables & secrets (CRITICAL: never commit real .env files)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs & editors
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Local docker overrides
+docker-compose.override.yaml
+docker-compose.override.yml

@@ -279,7 +279,7 @@
 .part-grid {
   display: flex;
   flex-direction: column; /* Stacks children vertically */
-  gap: 1.75rem;          /* Vertical spacing between Ingredients & Instructions */
+  gap: 1.75rem; /* Vertical spacing between Ingredients & Instructions */
   width: 100%;
 }
 
@@ -316,7 +316,10 @@
   padding: 0;
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); /* Clean multi-column grid for ingredients */
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(240px, 1fr)
+  ); /* Clean multi-column grid for ingredients */
   gap: 0.75rem 1.25rem;
 }
 

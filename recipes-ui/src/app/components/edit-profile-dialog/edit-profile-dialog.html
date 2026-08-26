@@ -1,0 +1,48 @@
+<h2 mat-dialog-title>Edit Profile</h2>
+
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <mat-dialog-content>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Full Name</mat-label>
+      <input matInput formControlName="name" />
+      <mat-icon matPrefix>person</mat-icon>
+      @if (form.get('name')?.hasError('required')) {
+        <mat-error>Name is required</mat-error>
+      } @else if (form.get('name')?.hasError('minlength')) {
+        <mat-error>Name must be at least 2 characters</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Avatar Image URL</mat-label>
+      <input matInput formControlName="avatarUrl" placeholder="https://example.com/avatar.jpg" />
+      <mat-icon matPrefix>image</mat-icon>
+      @if (form.get('avatarUrl')?.hasError('pattern')) {
+        <mat-error>Must be a valid HTTP/HTTPS URL</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Bio</mat-label>
+      <textarea matInput formControlName="bio" rows="3"></textarea>
+      @if (form.get('bio')?.hasError('maxlength')) {
+        <mat-error>Bio cannot exceed 250 characters</mat-error>
+      }
+    </mat-form-field>
+
+    @if (errorMessage(); as message) {
+      <p class="error-message">{{ message }}</p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="onCancel()" [disabled]="isSaving()">Cancel</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="isSaving()">
+      @if (isSaving()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+        <span>Save Changes</span>
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

@@ -6,6 +6,7 @@ from flask_jwt_extended import (
 )
 
 from controllers.user_controller import UserController
+from extensions import limiter
 
 
 user_bp = Blueprint(
@@ -20,6 +21,7 @@ user_bp = Blueprint(
 # ============================================================
 
 @user_bp.route('/register', methods=['POST'])
+@limiter.limit("5 per hour")
 def register():
     data = request.get_json(silent=True) or {}
 
@@ -33,6 +35,7 @@ def register():
 # ============================================================
 
 @user_bp.route('/login', methods=['POST'])
+@limiter.limit("10 per minute")
 def login():
     data = request.get_json(silent=True) or {}
 

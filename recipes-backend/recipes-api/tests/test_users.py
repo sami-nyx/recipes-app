@@ -2,7 +2,8 @@ import unittest
 import json
 
 from tests.test_base import BaseTestCase
-from models.user import db, User
+from extensions import db
+from models.user import User
 
 
 class TestUserRoutes(BaseTestCase):
@@ -233,8 +234,14 @@ class TestUserRoutes(BaseTestCase):
 
         self.assertEqual(response.status_code, 401)
 
+        # Every error response carries both keys now, so a client can
+        # standardize on either one regardless of which blueprint it hit.
         self.assertEqual(
             data.get('message'),
+            'Invalid username/email or password'
+        )
+        self.assertEqual(
+            data.get('error'),
             'Invalid username/email or password'
         )
 
