@@ -7,9 +7,50 @@ on:
 
 jobs:
 
+  # ============================================================================
+  # Detect what actually changed in this push (not a test - pure change
+  # detection - so this doesn't conflict with "no tests on main")
+  # ============================================================================
+
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-22.04
+
+    permissions:
+      contents: read
+
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+
+    steps:
+      - name: Checkout Code Metadata
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github
+
+      - name: Check for File Changes
+        id: filter
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 #v4.0.2
+        with:
+          filters: |
+            backend:
+              - 'recipes-backend/recipes-api/**'
+            frontend:
+              - 'recipes-ui/**'
+
   update-gitops:
     name: Update GitOps
     runs-on: ubuntu-24.04
+
+    needs:
+      - changes
+
+    # Nothing under recipes-backend/recipes-api/ changed in what just
+    # landed on main - the image GitOps already points at is still
+    # exactly correct, so there's no new tag/image to promote.
+    if: ${{ needs.changes.outputs.backend == 'true' }}
 
     permissions:
       contents: read
@@ -84,6 +125,14 @@ jobs:
     name: Deploy UI
     runs-on: ubuntu-24.04
 
+    needs:
+      - changes
+
+    # Nothing under recipes-ui/ changed - the site already deployed to
+    # S3/CloudFront is still exactly correct, so there's nothing new to
+    # build or sync.
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
+
     permissions:
       id-token: write
       contents: read
@@ -148,11 +197,18 @@ jobs:
           sparse-checkout: |
             .github/actions/notify-slack
 
+      # update-gitops/deploy-ui legitimately read "skipped" now when their
+      # respective paths didn't change (see each job's `if`) - that's a
+      # correct outcome, not a failure, so both steps below treat
+      # "success" and "skipped" the same way and only react to an actual
+      # "failure"/"cancelled" result.
       - name: Notify success
         if: >-
           ${{
-            needs.update-gitops.result == 'success' &&
-            needs.deploy-ui.result == 'success'
+            needs.update-gitops.result != 'failure' &&
+            needs.update-gitops.result != 'cancelled' &&
+            needs.deploy-ui.result != 'failure' &&
+            needs.deploy-ui.result != 'cancelled'
           }}
         uses: ./.github/actions/notify-slack
         with:
@@ -167,8 +223,10 @@ jobs:
       - name: Notify failure
         if: >-
           ${{
-            needs.update-gitops.result != 'success' ||
-            needs.deploy-ui.result != 'success'
+            needs.update-gitops.result == 'failure' ||
+            needs.update-gitops.result == 'cancelled' ||
+            needs.deploy-ui.result == 'failure' ||
+            needs.deploy-ui.result == 'cancelled'
           }}
         uses: ./.github/actions/notify-slack
         with:
@@ -177,5 +235,5 @@ jobs:
           message: |
             GitOps update: `${{ needs.update-gitops.result }}`
             UI deployment: `${{ needs.deploy-ui.result }}`
-            Branch: `main` 
+            Branch: `main`
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
