@@ -56,6 +56,15 @@ jobs:
     needs:
       - unit-tests
 
+    # Skip the build/integration-test/ECR-publish cycle entirely when
+    # nothing under recipes-backend/recipes-api/ changed - the image
+    # already published under the current tag is still exactly correct,
+    # so there's nothing new to test or publish. tag-commit (below) needs
+    # this job and has no `if` of its own - it skips automatically
+    # whenever this does, which is what we want: no point minting a new
+    # version tag for an unchanged image.
+    if: ${{ needs.unit-tests.outputs.backend == 'true' }}
+
     permissions:
       contents: read
       id-token: write
@@ -76,6 +85,10 @@ jobs:
 
     needs:
       - integration-tests-and-publish
+
+    # Explicit rather than relying on default skip-cascades-through-needs
+    # behavior: only verify/tag when a new image actually got published.
+    if: ${{ needs.integration-tests-and-publish.result == 'success' }}
 
     runs-on: ubuntu-22.04
 
@@ -212,10 +225,18 @@ jobs:
         id: result
         shell: bash
         run: |
+          # integration-tests-and-publish/tag-commit legitimately read
+          # "skipped" now when recipes-backend/recipes-api/ didn't change
+          # (see that job's `if`) - that's a correct outcome, not a
+          # failure, so it's accepted here alongside "success". Only an
+          # actual "failure"/"cancelled" result should report the
+          # pipeline as failed.
           if [[ \
             "${{ needs.unit-tests.result }}" == "success" &&
-            "${{ needs.integration-tests-and-publish.result }}" == "success" &&
-            "${{ needs.tag-commit.result }}" == "success" \
+            "${{ needs.integration-tests-and-publish.result }}" != "failure" &&
+            "${{ needs.integration-tests-and-publish.result }}" != "cancelled" &&
+            "${{ needs.tag-commit.result }}" != "failure" &&
+            "${{ needs.tag-commit.result }}" != "cancelled" \
           ]]; then
             echo "status=success" >> "$GITHUB_OUTPUT"
             echo "title=Development pipeline succeeded" >> "$GITHUB_OUTPUT"
@@ -248,8 +269,27 @@ jobs:
     name: Create PR to Main
 
     needs:
+      - unit-tests
       - tag-commit
       - integration-tests-and-publish
+
+    # `always()` bypasses the default "skip if a needed job didn't
+    # succeed" behavior - tag-commit/integration-tests-and-publish read
+    # "skipped" on a frontend-only change (see that job's `if`), and this
+    # job must still run in that case: the UI still needs to reach main
+    # to be deployed. Explicitly still blocked by a genuine failure, and
+    # by there being nothing at all to promote (neither side changed -
+    # see recipes-ui-enhancements.md / recipes-api-enhancements.md for
+    # why an empty release PR is skipped rather than opened).
+    if: >-
+      ${{
+        always() &&
+        needs.tag-commit.result != 'failure' &&
+        needs.tag-commit.result != 'cancelled' &&
+        needs.integration-tests-and-publish.result != 'failure' &&
+        needs.integration-tests-and-publish.result != 'cancelled' &&
+        (needs.unit-tests.outputs.backend == 'true' || needs.unit-tests.outputs.frontend == 'true')
+      }}
 
     runs-on: ubuntu-22.04
 
@@ -275,8 +315,25 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMAGE_TAG: ${{ needs.integration-tests-and-publish.outputs.image-tag }}
+          BACKEND_CHANGED: ${{ needs.unit-tests.outputs.backend }}
+          FRONTEND_CHANGED: ${{ needs.unit-tests.outputs.frontend }}
         run: |
           set -euo pipefail
+
+          # No new image tag on a frontend-only release - IMAGE_TAG is
+          # empty in that case (integration-tests-and-publish was
+          # skipped). Title/body describe what actually changed instead
+          # of a blank tag.
+          if [ "$BACKEND_CHANGED" = "true" ] && [ "$FRONTEND_CHANGED" = "true" ]; then
+            CHANGE_SUMMARY="backend + frontend"
+            PR_TITLE="Release ${IMAGE_TAG}"
+          elif [ "$BACKEND_CHANGED" = "true" ]; then
+            CHANGE_SUMMARY="backend only"
+            PR_TITLE="Release ${IMAGE_TAG}"
+          else
+            CHANGE_SUMMARY="frontend only (no new recipes-api image)"
+            PR_TITLE="Release: frontend"
+          fi
 
           # Check whether develop -> main PR already exists
           EXISTING_PR="$(
@@ -306,13 +363,14 @@ jobs:
             gh pr create \
               --base main \
               --head develop \
-              --title "Release ${IMAGE_TAG}" \
+              --title "$PR_TITLE" \
               --body "$(cat <<EOF
           ## Automated release
 
           Development validation completed successfully.
 
-          **Image tag:** \`${IMAGE_TAG}\`
+          **Changes:** ${CHANGE_SUMMARY}
+          **Image tag:** \`${IMAGE_TAG:-unchanged}\`
           **Source branch:** \`develop\`
           **Target branch:** \`main\`
           **Commit:** \`${GITHUB_SHA}\`
@@ -368,7 +426,7 @@ jobs:
           message: |
             PR: #${{ needs.create-main-pr.outputs.pr-number }}
             Branch: `develop` → `main`
-            Image: `${{ needs.integration-tests-and-publish.outputs.image-tag }}`
+            Image: `${{ needs.integration-tests-and-publish.outputs.image-tag || 'unchanged (frontend-only release)' }}`
             Status: `${{ needs.create-main-pr.outputs.pr-status }}`
 
             ${{ needs.create-main-pr.outputs.pr-url }}
