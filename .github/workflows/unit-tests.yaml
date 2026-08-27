@@ -1,6 +1,13 @@
 name: Unit Test
 on:
   workflow_call:
+    outputs:
+      backend:
+        description: "Whether recipes-backend/recipes-api/** changed"
+        value: ${{ jobs.changes.outputs.backend }}
+      frontend:
+        description: "Whether recipes-ui/** changed"
+        value: ${{ jobs.changes.outputs.frontend }}
 
 jobs:
   changes:
