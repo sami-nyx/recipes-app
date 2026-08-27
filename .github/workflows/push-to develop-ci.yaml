@@ -58,6 +58,14 @@ jobs:
     needs:
       - unit-tests
 
+    # An explicit `if:` replaces GitHub Actions' default success() gate
+    # entirely rather than ANDing with it - `needs.unit-tests.result ==
+    # 'success'` has to be spelled out here, or a genuine backend-tests
+    # failure would be silently ignored: the `changes` sub-job still
+    # reports backend == 'true' regardless of whether backend-tests
+    # itself passed, so without this check a broken commit would still
+    # get built, integration-tested, and published to ECR.
+    #
     # Skip the build/integration-test/ECR-publish cycle entirely when
     # nothing under recipes-backend/recipes-api/ changed - the image
     # already published under the current tag is still exactly correct,
@@ -65,7 +73,7 @@ jobs:
     # this job and has no `if` of its own - it skips automatically
     # whenever this does, which is what we want: no point minting a new
     # version tag for an unchanged image.
-    if: ${{ needs.unit-tests.outputs.backend == 'true' }}
+    if: ${{ needs.unit-tests.result == 'success' && needs.unit-tests.outputs.backend == 'true' }}
 
     permissions:
       contents: read
@@ -282,9 +290,17 @@ jobs:
     # by there being nothing at all to promote (neither side changed -
     # see recipes-ui-enhancements.md / recipes-api-enhancements.md for
     # why an empty release PR is skipped rather than opened).
+    #
+    # needs.unit-tests.result == 'success' is required explicitly for the
+    # same reason integration-tests-and-publish now checks it: unit-tests
+    # never has an `if` of its own (it always runs), so this is the only
+    # signal that backend-tests/frontend-tests actually passed - without
+    # it, a genuine test failure on the side that changed wouldn't stop
+    # this job from still opening a release PR toward main.
     if: >-
       ${{
         always() &&
+        needs.unit-tests.result == 'success' &&
         needs.tag-commit.result != 'failure' &&
         needs.tag-commit.result != 'cancelled' &&
         needs.integration-tests-and-publish.result != 'failure' &&
