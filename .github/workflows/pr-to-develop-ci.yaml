@@ -26,9 +26,14 @@ jobs:
         with:
           status: started
           title: "PR validation started"
+          # "Promotion:", not "Branch:" - notify-slack's own payload
+          # already appends a "Branch:" line (just the PR's head ref), so
+          # reusing that label here for a *different* two-branch value
+          # would show two differently-meaning "Branch:" lines in one
+          # message.
           message: |
             PR: #${{ github.event.pull_request.number }}
-            Branch: `${{ github.head_ref || github.ref_name }}` → `develop`
+            Promotion: `${{ github.head_ref || github.ref_name }}` → `develop`
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
 
 
@@ -125,7 +130,7 @@ jobs:
           title: ${{ steps.result.outputs.title }}
           message: |
             PR: #${{ github.event.pull_request.number }}
-            Branch: `${{ github.head_ref || github.ref_name }}` → `develop`
+            Promotion: `${{ github.head_ref || github.ref_name }}` → `develop`
 
             Unit tests: `${{ needs.unit-tests.result }}`
             Integration tests: `${{ needs.integration-tests.result }}`

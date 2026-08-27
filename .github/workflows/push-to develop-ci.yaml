@@ -33,8 +33,10 @@ jobs:
         with:
           status: started
           title: "Development pipeline started"
+          # No "Branch: ..." line here - notify-slack's own payload
+          # already appends one automatically, and it'd be identical to
+          # this one (a single ref, no promotion path to add).
           message: |
-            Branch: `${{ github.ref_name }}`
             Commit: `${{ github.sha }}`
             Triggered by: `${{ github.actor }}`
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -251,7 +253,6 @@ jobs:
           status: ${{ steps.result.outputs.status }}
           title: ${{ steps.result.outputs.title }}
           message: |
-            Branch: `${{ github.ref_name }}`
             Commit: `${{ github.sha }}`
 
             Unit tests: `${{ needs.unit-tests.result }}`
@@ -423,9 +424,14 @@ jobs:
         with:
           status: success
           title: "Release PR ready"
+          # "Promotion:", not "Branch:" - notify-slack's own payload
+          # already appends a "Branch:" line (just the current ref), so
+          # reusing that label here for a *different* two-branch value
+          # would show two differently-meaning "Branch:" lines in one
+          # message.
           message: |
             PR: #${{ needs.create-main-pr.outputs.pr-number }}
-            Branch: `develop` → `main`
+            Promotion: `develop` → `main`
             Image: `${{ needs.integration-tests-and-publish.outputs.image-tag || 'unchanged (frontend-only release)' }}`
             Status: `${{ needs.create-main-pr.outputs.pr-status }}`
 

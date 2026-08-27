@@ -28,12 +28,20 @@ runs:
 
         git fetch --tags --force
 
-        LATEST_TAG="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' \
-          --sort=-v:refname | head -n 1)"
-        if [[ ! "$LATEST_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-          echo "Invalid semantic version tag: $LATEST_TAG"
-          exit 1
-        fi
+        # `git tag -l` only supports globs, not regex - its 'v[0-9]*.[0-9]*.[0-9]*'
+        # pattern is looser than it looks (the trailing `*` matches a
+        # suffix too, e.g. "v1.0.0-hotfix"), so filter again with a strict
+        # anchored regex before picking the latest - a single stray tag
+        # that only satisfies the glob would otherwise become LATEST_TAG
+        # and only get rejected after the fact (see the check this used
+        # to have here), breaking version resolution for every run until
+        # someone finds and deletes it.
+        LATEST_TAG="$(
+          git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | head -n 1
+        )"
+
         TYPE="${{ inputs.major-minor-patch }}"
 
         case "$TYPE" in
@@ -46,6 +54,11 @@ runs:
             ;;
         esac
 
+        # This repo already has tags, so this branch isn't exercised
+        # today, but it's a real, reachable case now (a fresh repo, or
+        # this action reused elsewhere) - previously the strict-regex
+        # check above ran before this and unconditionally rejected an
+        # empty LATEST_TAG, so bootstrapping to v1.0.0 was unreachable.
         if [ -z "$LATEST_TAG" ]; then
           NEXT_TAG="v1.0.0"
           echo "No existing semantic version tags found."
