@@ -98,6 +98,7 @@ services:
     volumes:
       - ./recipes-ui/dist/recipes-ui/browser:/usr/share/nginx/html:ro
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/50x.html:/usr/share/nginx/errors/50x.html:ro
 
     depends_on:
       recipes-api:
