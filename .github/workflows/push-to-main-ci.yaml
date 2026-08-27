@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: Checkout Code Metadata
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 #v4.4.0
         with:
           sparse-checkout: |
             .github
@@ -63,16 +63,26 @@ jobs:
     permissions:
       contents: read
 
+    # NOT NEXT_TAG - that's the version this job mints for the *GitOps
+    # repo's own* tag below, unrelated to the app repo. LATEST_TAG is the
+    # actual recipes-api image tag ("Update recipes-api image tag" step
+    # writes this same value into apps/recipes-api/values.yaml) - the one
+    # worth surfacing to a reader of this workflow's outputs, e.g. the
+    # Slack notification below. This output was previously named
+    # `image_tag` (inconsistent with every other output name in
+    # .github/, which is kebab-case) and pointed at NEXT_TAG - unused
+    # anywhere, and would have been misleading (a tag that doesn't
+    # correspond to any recipes-api image) had anyone wired it up as-is.
     outputs:
-      image_tag: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
+      image-tag: ${{ steps.resolve-tag.outputs.LATEST_TAG }}
 
     steps:
       - name: Checkout application repository
-        uses: actions/checkout@v4 
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 #v4.4.0
         with:
-          fetch-depth: 0     
+          fetch-depth: 0
 
-      - name: Resolve image tag  
+      - name: Resolve image tag
         id: resolve-tag
         uses: ./.github/actions/resolve-tag
         with:
@@ -80,7 +90,7 @@ jobs:
 
 
       - name: Checkout GitOps repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 #v4.4.0
         with:
           repository: sami-nyx/recipes-gitops
           token: ${{ secrets.RECIPES_GITOPS_READ_WRITE_PAT }}
@@ -88,7 +98,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup yq
-        uses: mikefarah/yq@v4
+        uses: mikefarah/yq@c14f446382944492701b16c1ddb48bb9dbe683e3 #v4.53.6
 
       - name: Update recipes-api image tag
         working-directory: ./gitops
@@ -127,7 +137,7 @@ jobs:
             git tag "$IMAGE_TAG"
             git push origin "$IMAGE_TAG"
           fi
- 
+
 
   deploy-ui:
     name: Deploy UI
@@ -147,13 +157,13 @@ jobs:
 
     steps:
       - name: Checkout application repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 #v4.4.0
         with:
           sparse-checkout: |
             recipes-ui
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 #v4.4.0
         with:
           node-version: "24"
           cache: npm
@@ -168,9 +178,9 @@ jobs:
         run: npm run build -- --configuration production
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c #v6.2.3
         with:
-          role-to-assume: ${{ vars.S3_PUSH_ROLE_ARN }} 
+          role-to-assume: ${{ vars.S3_PUSH_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Deploy UI to S3
@@ -200,7 +210,7 @@ jobs:
 
     steps:
       - name: Checkout local action directory
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 #v4.4.0
         with:
           sparse-checkout: |
             .github/actions/notify-slack
@@ -228,6 +238,7 @@ jobs:
           message: |
             GitOps update: `${{ needs.update-gitops.result }}`
             UI deployment: `${{ needs.deploy-ui.result }}`
+            Image tag: `${{ needs.update-gitops.outputs.image-tag || 'unchanged (frontend-only deploy)' }}`
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Notify failure
