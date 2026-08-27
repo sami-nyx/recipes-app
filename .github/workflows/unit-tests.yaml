@@ -28,9 +28,9 @@ jobs:
             frontend:
               - 'recipes-ui/**'
 
-    # --------------------------------------------------
-    # Job 2: Python Backend Tests (Runs conditionally)
-    # --------------------------------------------------
+  # --------------------------------------------------
+  # Job 2: Python Backend Tests (Runs conditionally)
+  # --------------------------------------------------
   backend-tests:
     needs: changes
     if: ${{ needs.changes.outputs.backend == 'true' }}
