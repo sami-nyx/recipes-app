@@ -1,44 +1,23 @@
-name: Component Test & Image Publish (on push to develop)
+name: Component Test
 
 on:
   workflow_call:
-    inputs:
-      publish-image:
-        description: "Whether to push the tested image to ECR"
-        required: false
-        type: boolean
-        default: false
 
-    outputs:
-      image-tag:
-        description: "Tag of the image published to ECR"
-        value: ${{ jobs.component-test.outputs.image-tag }}
-
-      image-uri:
-        description: "Full URI of the image published to ECR"
-        value: ${{ jobs.component-test.outputs.image-uri }}
 jobs:
   component-test:
-    # Job name kept plain (not matching the workflow-level name above) -
-    # image publishing only actually happens when called with
-    # publish-image: true (push-to-develop-ci.yaml); the PR-to-develop
-    # pipeline calls this same workflow for tests only, publish-image
-    # defaults to false. See the "Publish tested image to ECR" step below.
-    #
     # "Component test": recipes-api validated against its own direct
     # dependency (postgres) only, via recipes-backend/recipes-api/
     # docker-compose.yaml - no nginx, no other application component.
-    # Distinct from the (future) integration tier, which will exercise
-    # multiple components together through the real system topology.
+    # Test only - no publish capability here. Publishing to ECR now
+    # belongs to the integration tier (integration-test.yaml), which
+    # runs once per merge to develop instead of once per PR-validation
+    # AND once per merge - see recipes-api-enhancements.md /
+    # recipes-ui-enhancements.md for why.
     name: Component Test
     runs-on: ubuntu-22.04
     permissions:
       contents: read
-      id-token: write
 
-    outputs:
-      image-tag: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
-      image-uri: ${{ steps.publish-image.outputs.image-uri }}
     env:
       # ============================================================
       # Application
@@ -113,8 +92,7 @@ jobs:
       # no other component) and blocks until the component-test container
       # exits, propagating its exit code - a real test failure fails this
       # step (and, since GitHub Actions stops a job at its first failed
-      # step, everything after it: tag resolution and the ECR publish
-      # below never run against untested code).
+      # step, nothing downstream sees this as a passing run).
       - name: Run component tests
         run: |
           docker compose -f recipes-backend/recipes-api/docker-compose.yaml up \
@@ -131,42 +109,3 @@ jobs:
           docker compose -f recipes-backend/recipes-api/docker-compose.yaml down \
             --volumes \
             --remove-orphans
-
-      # ============================================================
-      # Optional: resolve tag and, tag image and push to ECR
-      # ============================================================
-
-      # ------------------------------------------------------------------------
-      # Resolve semantic version
-      # ------------------------------------------------------------------------
-
-      - name: Resolve next version
-        id: resolve-tag
-        uses: ./.github/actions/resolve-tag
-        with:
-          major-minor-patch: patch
-
-
-      - name: Validate image publishing inputs
-        if: ${{ inputs.publish-image }}
-        shell: bash
-        env:
-          IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
-
-        run: |
-          set -euo pipefail
-
-          if [ -z "$IMAGE_TAG" ]; then
-            echo "::error::image-tag is required when publish-image=true"
-            exit 1
-          fi
-      - name: Publish tested image to ECR
-        if: ${{ inputs.publish-image }}
-        id: publish-image
-        uses: ./.github/actions/push-to-ecr
-        with:
-          local-image: ${{ vars.LOCAL_IMAGE }}
-          image-tag: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
-          repository: ${{ vars.IMAGE_REPO_NAME }}
-          aws-region: ${{ vars.IMAGE_REPO_REGION }}
-          role-to-assume: ${{ vars.ECR_PUSH_ROLE_ARN }}

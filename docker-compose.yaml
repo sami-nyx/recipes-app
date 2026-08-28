@@ -107,31 +107,38 @@ services:
 
   # One-shot: builds the Angular app and exits. Not a long-running
   # service like recipes-api/nginx - `depends_on: condition:
-  # service_completed_successfully` below is what makes that distinction
-  # matter (nginx waits for this to *finish*, not just start).
+  # service_completed_successfully` below (on nginx) is what makes that
+  # distinction matter: nginx waits for this to *finish*, not just start.
   #
-  # Same build recipes-ui actually ships with: `npm ci && npm run build
-  # -- --configuration production` mirrors push-to-main-ci.yaml's
-  # deploy-ui job exactly, so what you preview locally is built the same
-  # way as what reaches S3, not a coincidentally-similar dev build.
+  # A real `build:` (not a bind-mount + inline command) so `npm ci` is
+  # its own Docker layer, cached the same way recipes-api's build already
+  # is (cache_from/cache_to type=gha) - editing application code alone
+  # doesn't force a full reinstall on every `docker compose up`.
   #
-  # Bind-mounts ./recipes-ui itself (not a copy) so the build's output
-  # lands directly at ./recipes-ui/dist/recipes-ui/browser on the host -
-  # nginx's existing mount below already points there, unchanged. The
-  # extra `/app/node_modules` volume is the standard fix for bind-mounting
-  # a JS project into a container: without it, `npm ci` would install
-  # into the bind-mounted host tree, and native deps built for the
-  # container's Linux/arch could conflict with whatever's already in
-  # ./recipes-ui/node_modules from running npm on the host directly.
+  # nginx stays the plain, stock nginx:1.29-alpine image below - it
+  # doesn't know or care how the UI was built. The hand-off is explicit:
+  # this container's own command copies its baked-in build output
+  # (recipes-ui/Dockerfile's RUN npm run build already produced it, as
+  # an image layer) into the shared `rendered_spa_content` volume, which
+  # nginx then mounts read-only. `rm -rf` first so a rebuild can't leave
+  # stale files (a renamed/removed asset from a previous build) sitting
+  # in the volume alongside the new ones.
   recipes-ui-build:
-    image: node:24-alpine
-    working_dir: /app
+    image: ${LOCAL_UI_IMAGE:-recipes-ui:local}
+    build:
+      context: ./recipes-ui
+      dockerfile: Dockerfile
+
+      cache_from:
+        - type=gha,scope=recipes-ui
+
+      cache_to:
+        - type=gha,mode=max,scope=recipes-ui
 
     volumes:
-      - ./recipes-ui:/app
-      - recipes_ui_node_modules:/app/node_modules
+      - rendered_spa_content:/output
 
-    command: sh -c "npm ci && npm run build -- --configuration production"
+    command: sh -c "rm -rf /output/* && cp -r /app/dist/recipes-ui/browser/. /output/"
 
 
   nginx:
@@ -143,7 +150,7 @@ services:
       - "80:80"
 
     volumes:
-      - ./recipes-ui/dist/recipes-ui/browser:/usr/share/nginx/html:ro
+      - rendered_spa_content:/usr/share/nginx/html:ro
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./nginx/50x.html:/usr/share/nginx/errors/50x.html:ro
 
@@ -157,24 +164,22 @@ services:
       - app_network
 
 
-  # This is the whole-system stack (nginx + recipes-api + this
-  # test-runner, going through nginx) - the future integration tier, once
-  # there's a second component to actually integrate with. Same
-  # test/component/ Dockerfile and pytest suite the component tier uses
-  # (conftest.py reads its target from API_BASE_URL, not hardcoded), just
-  # pointed at nginx instead of recipes-api directly. Not yet wired into
-  # any CI workflow - the component tier is (see
-  # .github/workflows/component-test.yaml); this one is next.
-  integration-tests:
+  # The whole-system stack (nginx + recipes-api + recipes-ui-build + this
+  # test-runner, going through nginx) - the integration tier, wired into
+  # .github/workflows/integration-test.yaml. Same test/component/
+  # Dockerfile and pytest suite the component tier uses (conftest.py
+  # reads its target from API_BASE_URL, not hardcoded), just pointed at
+  # nginx instead of recipes-api directly.
+  integration-test:
     build:
       context: ./test/component/
       dockerfile: Dockerfile
 
       cache_from:
-        - type=gha,scope=integration-tests
+        - type=gha,scope=integration-test
 
       cache_to:
-        - type=gha,mode=max,scope=integration-tests
+        - type=gha,mode=max,scope=integration-test
 
     environment:
       API_BASE_URL: http://nginx
@@ -189,7 +194,7 @@ services:
 
 volumes:
   postgres_data:
-  recipes_ui_node_modules:
+  rendered_spa_content:
 
 
 networks:
