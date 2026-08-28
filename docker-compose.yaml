@@ -1,3 +1,21 @@
+# Why nginx is here at all: it doesn't rehearse anything about how this
+# app actually ships. Production serves the UI from S3 + CloudFront and
+# routes recipes-api through a Kubernetes Ingress (see
+# recipes-cluster-resources/apps/recipes-api/templates/ingress.yaml) -
+# neither one is this container or this nginx.conf. What it's actually
+# for:
+#   - One origin locally. `docker compose up` gives you http://localhost
+#     serving both the built Angular app and /api//system, instead of
+#     two different ports/origins - avoids CORS complexity in local dev
+#     and lets you click around the app the way a real visitor would hit
+#     one domain.
+#   - Something for tests to actually route through. It's what makes
+#     "does proxying/routing work" a testable question at all, separate
+#     from "does recipes-api's own logic work" (see test/component/ vs.
+#     the future integration tier).
+# If either of those stops being true, there's no other reason to keep
+# it - it's not a production stand-in.
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -87,6 +105,35 @@ services:
       start_period: 5s
 
 
+  # One-shot: builds the Angular app and exits. Not a long-running
+  # service like recipes-api/nginx - `depends_on: condition:
+  # service_completed_successfully` below is what makes that distinction
+  # matter (nginx waits for this to *finish*, not just start).
+  #
+  # Same build recipes-ui actually ships with: `npm ci && npm run build
+  # -- --configuration production` mirrors push-to-main-ci.yaml's
+  # deploy-ui job exactly, so what you preview locally is built the same
+  # way as what reaches S3, not a coincidentally-similar dev build.
+  #
+  # Bind-mounts ./recipes-ui itself (not a copy) so the build's output
+  # lands directly at ./recipes-ui/dist/recipes-ui/browser on the host -
+  # nginx's existing mount below already points there, unchanged. The
+  # extra `/app/node_modules` volume is the standard fix for bind-mounting
+  # a JS project into a container: without it, `npm ci` would install
+  # into the bind-mounted host tree, and native deps built for the
+  # container's Linux/arch could conflict with whatever's already in
+  # ./recipes-ui/node_modules from running npm on the host directly.
+  recipes-ui-build:
+    image: node:24-alpine
+    working_dir: /app
+
+    volumes:
+      - ./recipes-ui:/app
+      - recipes_ui_node_modules:/app/node_modules
+
+    command: sh -c "npm ci && npm run build -- --configuration production"
+
+
   nginx:
     image: nginx:1.29-alpine
     container_name: recipes_nginx
@@ -103,6 +150,8 @@ services:
     depends_on:
       recipes-api:
         condition: service_healthy
+      recipes-ui-build:
+        condition: service_completed_successfully
 
     networks:
       - app_network
@@ -132,6 +181,7 @@ services:
 
 volumes:
   postgres_data:
+  recipes_ui_node_modules:
 
 
 networks:
