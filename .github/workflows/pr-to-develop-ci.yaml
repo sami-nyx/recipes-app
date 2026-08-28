@@ -76,12 +76,12 @@ jobs:
       
     uses: ./.github/workflows/unit-tests.yaml
 
-  integration-tests:
+  component-test:
     needs:
       # - lint
       - unit-tests
 
-    uses: ./.github/workflows/integration-tests.yaml
+    uses: ./.github/workflows/component-test.yaml
 
     secrets: inherit  
   notify:
@@ -91,7 +91,7 @@ jobs:
     needs:
       # - lint
       - unit-tests
-      - integration-tests
+      - component-test
 
     if: ${{ always() }}
 
@@ -114,7 +114,7 @@ jobs:
           # real outcome.
           if [[ \
             "${{ needs.unit-tests.result }}" == "success" &&
-            "${{ needs.integration-tests.result }}" == "success" \
+            "${{ needs.component-test.result }}" == "success" \
           ]]; then
             echo "status=success" >> "$GITHUB_OUTPUT"
             echo "title=PR validation succeeded" >> "$GITHUB_OUTPUT"
@@ -133,5 +133,5 @@ jobs:
             Promotion: `${{ github.head_ref || github.ref_name }}` → `develop`
 
             Unit tests: `${{ needs.unit-tests.result }}`
-            Integration tests: `${{ needs.integration-tests.result }}`
+            Component test: `${{ needs.component-test.result }}`
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}

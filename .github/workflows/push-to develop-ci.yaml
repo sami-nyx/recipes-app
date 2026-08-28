@@ -51,10 +51,10 @@ jobs:
 
 
   # ============================================================================
-  # Integration Tests + ECR Publish
+  # Component Test + ECR Publish
   # ============================================================================
 
-  integration-tests-and-publish:
+  component-test-and-publish:
     needs:
       - unit-tests
 
@@ -64,9 +64,9 @@ jobs:
     # failure would be silently ignored: the `changes` sub-job still
     # reports backend == 'true' regardless of whether backend-tests
     # itself passed, so without this check a broken commit would still
-    # get built, integration-tested, and published to ECR.
+    # get built, component-tested, and published to ECR.
     #
-    # Skip the build/integration-test/ECR-publish cycle entirely when
+    # Skip the build/component-test/ECR-publish cycle entirely when
     # nothing under recipes-backend/recipes-api/ changed - the image
     # already published under the current tag is still exactly correct,
     # so there's nothing new to test or publish. tag-commit (below) needs
@@ -81,7 +81,7 @@ jobs:
 
     secrets: inherit
 
-    uses: ./.github/workflows/integration-tests.yaml
+    uses: ./.github/workflows/component-test.yaml
     with:
       publish-image: true
 
@@ -94,11 +94,11 @@ jobs:
     name: Verify ECR and Tag Commit
 
     needs:
-      - integration-tests-and-publish
+      - component-test-and-publish
 
     # Explicit rather than relying on default skip-cascades-through-needs
     # behavior: only verify/tag when a new image actually got published.
-    if: ${{ needs.integration-tests-and-publish.result == 'success' }}
+    if: ${{ needs.component-test-and-publish.result == 'success' }}
 
     runs-on: ubuntu-22.04
 
@@ -147,8 +147,8 @@ jobs:
         id: verify-image
         shell: bash
         env:
-          IMAGE_TAG: ${{ needs.integration-tests-and-publish.outputs.image-tag }}
-          IMAGE_URI: ${{ needs.integration-tests-and-publish.outputs.image-uri }}
+          IMAGE_TAG: ${{ needs.component-test-and-publish.outputs.image-tag }}
+          IMAGE_URI: ${{ needs.component-test-and-publish.outputs.image-uri }}
           IMAGE_REPO: ${{ vars.IMAGE_REPO_NAME }}
           AWS_REGION: ${{ vars.AWS_REGION }}
         run: |
@@ -197,7 +197,7 @@ jobs:
       - name: Tag Current Commit
         shell: bash
         env:
-          IMAGE_TAG: ${{ needs.integration-tests-and-publish.outputs.image-tag }}
+          IMAGE_TAG: ${{ needs.component-test-and-publish.outputs.image-tag }}
         run: |
           set -euo pipefail
 
@@ -220,7 +220,7 @@ jobs:
 
     needs:
       - unit-tests
-      - integration-tests-and-publish
+      - component-test-and-publish
       - tag-commit
 
     if: ${{ always() }}
@@ -235,7 +235,7 @@ jobs:
         id: result
         shell: bash
         run: |
-          # integration-tests-and-publish/tag-commit legitimately read
+          # component-test-and-publish/tag-commit legitimately read
           # "skipped" now when recipes-backend/recipes-api/ didn't change
           # (see that job's `if`) - that's a correct outcome, not a
           # failure, so it's accepted here alongside "success". Only an
@@ -243,8 +243,8 @@ jobs:
           # pipeline as failed.
           if [[ \
             "${{ needs.unit-tests.result }}" == "success" &&
-            "${{ needs.integration-tests-and-publish.result }}" != "failure" &&
-            "${{ needs.integration-tests-and-publish.result }}" != "cancelled" &&
+            "${{ needs.component-test-and-publish.result }}" != "failure" &&
+            "${{ needs.component-test-and-publish.result }}" != "cancelled" &&
             "${{ needs.tag-commit.result }}" != "failure" &&
             "${{ needs.tag-commit.result }}" != "cancelled" \
           ]]; then
@@ -264,10 +264,10 @@ jobs:
             Commit: `${{ github.sha }}`
 
             Unit tests: `${{ needs.unit-tests.result }}`
-            Integration / ECR publish: `${{ needs.integration-tests-and-publish.result }}`
+            Component test / ECR publish: `${{ needs.component-test-and-publish.result }}`
             ECR verification / Git tag: `${{ needs.tag-commit.result }}`
 
-            Image tag: `${{ needs.integration-tests-and-publish.outputs.image-tag }}`
+            Image tag: `${{ needs.component-test-and-publish.outputs.image-tag }}`
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   # ============================================================================
@@ -280,10 +280,10 @@ jobs:
     needs:
       - unit-tests
       - tag-commit
-      - integration-tests-and-publish
+      - component-test-and-publish
 
     # `always()` bypasses the default "skip if a needed job didn't
-    # succeed" behavior - tag-commit/integration-tests-and-publish read
+    # succeed" behavior - tag-commit/component-test-and-publish read
     # "skipped" on a frontend-only change (see that job's `if`), and this
     # job must still run in that case: the UI still needs to reach main
     # to be deployed. Explicitly still blocked by a genuine failure, and
@@ -292,7 +292,7 @@ jobs:
     # why an empty release PR is skipped rather than opened).
     #
     # needs.unit-tests.result == 'success' is required explicitly for the
-    # same reason integration-tests-and-publish now checks it: unit-tests
+    # same reason component-test-and-publish now checks it: unit-tests
     # never has an `if` of its own (it always runs), so this is the only
     # signal that backend-tests/frontend-tests actually passed - without
     # it, a genuine test failure on the side that changed wouldn't stop
@@ -303,8 +303,8 @@ jobs:
         needs.unit-tests.result == 'success' &&
         needs.tag-commit.result != 'failure' &&
         needs.tag-commit.result != 'cancelled' &&
-        needs.integration-tests-and-publish.result != 'failure' &&
-        needs.integration-tests-and-publish.result != 'cancelled' &&
+        needs.component-test-and-publish.result != 'failure' &&
+        needs.component-test-and-publish.result != 'cancelled' &&
         (needs.unit-tests.outputs.backend == 'true' || needs.unit-tests.outputs.frontend == 'true')
       }}
 
@@ -331,14 +331,14 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          IMAGE_TAG: ${{ needs.integration-tests-and-publish.outputs.image-tag }}
+          IMAGE_TAG: ${{ needs.component-test-and-publish.outputs.image-tag }}
           BACKEND_CHANGED: ${{ needs.unit-tests.outputs.backend }}
           FRONTEND_CHANGED: ${{ needs.unit-tests.outputs.frontend }}
         run: |
           set -euo pipefail
 
           # No new image tag on a frontend-only release - IMAGE_TAG is
-          # empty in that case (integration-tests-and-publish was
+          # empty in that case (component-test-and-publish was
           # skipped). Title/body describe what actually changed instead
           # of a blank tag.
           if [ "$BACKEND_CHANGED" = "true" ] && [ "$FRONTEND_CHANGED" = "true" ]; then
@@ -420,7 +420,7 @@ jobs:
 
     needs:
       - create-main-pr
-      - integration-tests-and-publish
+      - component-test-and-publish
 
     runs-on: ubuntu-latest
 
@@ -448,7 +448,7 @@ jobs:
           message: |
             PR: #${{ needs.create-main-pr.outputs.pr-number }}
             Promotion: `develop` → `main`
-            Image: `${{ needs.integration-tests-and-publish.outputs.image-tag || 'unchanged (frontend-only release)' }}`
+            Image: `${{ needs.component-test-and-publish.outputs.image-tag || 'unchanged (frontend-only release)' }}`
             Status: `${{ needs.create-main-pr.outputs.pr-status }}`
 
             ${{ needs.create-main-pr.outputs.pr-url }}
