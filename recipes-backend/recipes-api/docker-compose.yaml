@@ -1,0 +1,111 @@
+# Component test: recipes-api validated against its own direct
+# dependency (postgres) only - no nginx, no other application component.
+# The test-runner talks to recipes-api directly. Deliberately lives here,
+# next to the component it tests, rather than in the repo-root compose
+# file (which represents the whole system and is the integration tier) -
+# someone working on just this component shouldn't need to know or care
+# what else exists in the repo to run its tests.
+#
+# No `container_name:`/fixed volume name on any service here, unlike the
+# root compose file - this one is meant to be runnable alongside other
+# compose stacks (e.g. the root one, or another component's own file)
+# without name collisions; Compose scopes container/volume/network names
+# to the project name (this directory) automatically.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER_NAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER_NAME} -d ${DB_NAME}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+
+  recipes-api:
+    # See the equivalent comment in the root docker-compose.yaml: `image:`
+    # alongside `build:` lets CI reuse an already-built/loaded image
+    # instead of rebuilding, while local dev (LOCAL_IMAGE unset) still
+    # just builds normally.
+    image: ${LOCAL_IMAGE:-recipes-api:local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+      cache_from:
+        - type=gha,scope=recipes-api
+
+      cache_to:
+        - type=gha,mode=max,scope=recipes-api
+
+    command: ["python", "app.py"]
+    restart: unless-stopped
+
+    environment:
+      FLASK_ENV: ${FLASK_ENV}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      SECRET_KEY: ${SECRET_KEY}
+      PORT: ${PORT}
+      APP_VERSION: ${APP_VERSION}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+
+      DB_NAME: ${DB_NAME}
+      DB_USER_NAME: ${DB_USER_NAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: postgres
+      DB_SCHEME: ${DB_SCHEME}
+      DB_PORT: 5432
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:5000/system/health')\" || exit 1"
+        ]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 5s
+
+
+  component-test:
+    build:
+      context: ../../test/component
+      dockerfile: Dockerfile
+
+      cache_from:
+        - type=gha,scope=component-test
+
+      cache_to:
+        - type=gha,mode=max,scope=component-test
+
+    environment:
+      # Straight to recipes-api - no nginx in this tier at all.
+      API_BASE_URL: http://recipes-api:5000
+
+    depends_on:
+      recipes-api:
+        condition: service_healthy
+
+
+volumes:
+  postgres_data:
