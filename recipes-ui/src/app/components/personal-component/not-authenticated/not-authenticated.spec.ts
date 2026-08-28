@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 
 import { NotAuthenticated } from './not-authenticated';
 
@@ -9,6 +10,8 @@ describe('NotAuthenticated', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [NotAuthenticated],
+      // Its template uses RouterLink.
+      providers: [provideRouter([])],
     }).compileComponents();
 
     fixture = TestBed.createComponent(NotAuthenticated);

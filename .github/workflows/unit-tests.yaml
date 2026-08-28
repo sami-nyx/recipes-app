@@ -100,6 +100,12 @@ jobs:
         run: |
           npm ci
 
-      - name: Run Angular Tests (Headless Chrome)
+      # `ng build` doesn't run a single spec - this step name previously
+      # claimed to run tests while actually just building the app, so
+      # Angular's test suite never executed in CI at all. The project uses
+      # Angular's Vitest-based unit-test builder (angular.json's "test"
+      # target), which runs component specs against jsdom by default -
+      # there's no Karma/Chrome involved despite the old step name.
+      - name: Run Angular Tests
         run: |
-          npx ng build --configuration development
+          npx ng test --watch=false
