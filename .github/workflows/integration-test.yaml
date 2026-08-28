@@ -1,0 +1,192 @@
+name: Integration Test & Image Publish (on push to develop)
+
+on:
+  workflow_call:
+    inputs:
+      publish-image:
+        description: "Whether to push the tested image to ECR"
+        required: false
+        type: boolean
+        default: false
+
+    outputs:
+      image-tag:
+        description: "Tag of the image published to ECR - empty if publish-image was false"
+        value: ${{ jobs.integration-test.outputs.image-tag }}
+
+      image-uri:
+        description: "Full URI of the image published to ECR - empty if publish-image was false"
+        value: ${{ jobs.integration-test.outputs.image-uri }}
+jobs:
+  integration-test:
+    # Job name kept plain (not matching the workflow-level name above) -
+    # image publishing only actually happens when called with
+    # publish-image: true. push-to-develop-ci.yaml calls this with
+    # publish-image set to whether recipes-api itself changed - this job
+    # still *runs* (and still gates promotion to main) on a frontend-only
+    # change too, since it's the only place the UI's production build and
+    # nginx routing get exercised together, but there's no new recipes-api
+    # image to publish in that case. See the "Resolve next version" step
+    # below - unlike the old combined component-test workflow this
+    # replaced, that step (and everything after it) is now itself gated
+    # on publish-image, not just the ECR-push step - previously it ran
+    # unconditionally, which meant image-tag/image-uri could come back
+    # non-empty even when nothing was actually published, and a caller
+    # naively trusting a non-empty image-tag would try to verify/tag an
+    # image in ECR that was never pushed.
+    #
+    # "Integration test": nginx + recipes-api + recipes-ui-build +
+    # postgres together, through the real system topology (routing,
+    # proxy headers, the UI's actual production build) - via the
+    # repo-root docker-compose.yaml. Distinct from the component tier
+    # (component-test.yaml), which only validates recipes-api against its
+    # own direct dependency, in isolation.
+    name: Integration Test
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      id-token: write
+
+    outputs:
+      image-tag: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
+      image-uri: ${{ steps.publish-image.outputs.image-uri }}
+    env:
+      # ============================================================
+      # Application
+      # ============================================================
+
+      FLASK_ENV: ${{ vars.FLASK_ENV }}
+      PORT: ${{ vars.PORT }}
+      APP_VERSION: ${{ vars.APP_VERSION }}
+      CORS_ORIGIN: ${{ vars.CORS_ORIGIN }}
+
+      # LOCAL_IMAGE is also passed to `docker compose` below (compose
+      # substitutes it into docker-compose.yaml's `recipes-api.image:`) so
+      # the stack reuses the image just built/loaded here instead of
+      # rebuilding it from scratch. recipes-ui-build has no equivalent
+      # pre-build step - it's built directly by `docker compose up` below,
+      # relying on its own cache_from/cache_to (declared in
+      # docker-compose.yaml) rather than a dedicated buildx step, since
+      # (unlike recipes-api) it's never independently tagged and pushed
+      # anywhere - it only needs to exist for the duration of this job.
+      LOCAL_IMAGE: ${{ vars.LOCAL_IMAGE }}
+
+      # ============================================================
+      # Database
+      # ============================================================
+      DB_NAME: ${{ vars.DB_NAME }}
+      DB_USER_NAME: ${{ vars.DB_USER_NAME }}
+      DB_SCHEME: ${{ vars.DB_SCHEME }}
+
+      # ============================================================
+      # Secrets
+      # ============================================================
+
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+      # Required separately from JWT_SECRET_KEY since config.py split them
+      # into two independent secrets - missing here, the recipes-api
+      # container fails at startup (get_required_env raises), so the
+      # stack this step brings up would never become healthy.
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+
+    steps:
+      # ============================================================
+      # Checkout
+      # ============================================================
+
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          clean: true
+          sparse-checkout: |
+            recipes-backend
+            recipes-ui
+            nginx
+            test
+            .github
+            docker-compose.yaml
+
+      # ============================================================
+      # Set up Docker Buildx (Required for GHA Caching)
+      # ============================================================
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e #v4.3.0
+
+      - name: Build Recipes API
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a #v7.3.0
+        with:
+          context: ./recipes-backend/recipes-api
+          file: ./recipes-backend/recipes-api/Dockerfile
+          load: true
+          tags: ${{ vars.LOCAL_IMAGE }}
+
+          cache-from: type=gha,scope=recipes-api
+          cache-to: type=gha,mode=max,scope=recipes-api
+
+      # ============================================================
+      # Run the integration test suite
+      # ============================================================
+      # Brings up the full stack (postgres, recipes-api, recipes-ui-build,
+      # nginx, and the integration-test runner from test/component/) and
+      # blocks until the integration-test container exits, propagating
+      # its exit code - a real test failure fails this step (and, since
+      # GitHub Actions stops a job at its first failed step, tag
+      # resolution and the ECR publish below never run against untested
+      # code).
+      - name: Run integration tests
+        run: |
+          docker compose -f docker-compose.yaml up \
+            --abort-on-container-exit \
+            --exit-code-from integration-test
+
+      # ============================================================
+      # Cleanup
+      # ============================================================
+
+      - name: Teardown Environment
+        if: ${{ always() }}
+        run: |
+          docker compose -f docker-compose.yaml down \
+            --volumes \
+            --remove-orphans
+
+      # ============================================================
+      # Optional: resolve tag and, tag image and push to ECR
+      # ============================================================
+
+      # ------------------------------------------------------------------------
+      # Resolve semantic version
+      # ------------------------------------------------------------------------
+
+      - name: Resolve next version
+        if: ${{ inputs.publish-image }}
+        id: resolve-tag
+        uses: ./.github/actions/resolve-tag
+        with:
+          major-minor-patch: patch
+
+
+      - name: Validate image publishing inputs
+        if: ${{ inputs.publish-image }}
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
+
+        run: |
+          set -euo pipefail
+
+          if [ -z "$IMAGE_TAG" ]; then
+            echo "::error::image-tag is required when publish-image=true"
+            exit 1
+          fi
+      - name: Publish tested image to ECR
+        if: ${{ inputs.publish-image }}
+        id: publish-image
+        uses: ./.github/actions/push-to-ecr
+        with:
+          local-image: ${{ vars.LOCAL_IMAGE }}
+          image-tag: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
+          repository: ${{ vars.IMAGE_REPO_NAME }}
+          aws-region: ${{ vars.IMAGE_REPO_REGION }}
+          role-to-assume: ${{ vars.ECR_PUSH_ROLE_ARN }}

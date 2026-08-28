@@ -164,24 +164,22 @@ services:
       - app_network
 
 
-  # This is the whole-system stack (nginx + recipes-api + this
-  # test-runner, going through nginx) - the future integration tier, once
-  # there's a second component to actually integrate with. Same
-  # test/component/ Dockerfile and pytest suite the component tier uses
-  # (conftest.py reads its target from API_BASE_URL, not hardcoded), just
-  # pointed at nginx instead of recipes-api directly. Not yet wired into
-  # any CI workflow - the component tier is (see
-  # .github/workflows/component-test.yaml); this one is next.
-  integration-tests:
+  # The whole-system stack (nginx + recipes-api + recipes-ui-build + this
+  # test-runner, going through nginx) - the integration tier, wired into
+  # .github/workflows/integration-test.yaml. Same test/component/
+  # Dockerfile and pytest suite the component tier uses (conftest.py
+  # reads its target from API_BASE_URL, not hardcoded), just pointed at
+  # nginx instead of recipes-api directly.
+  integration-test:
     build:
       context: ./test/component/
       dockerfile: Dockerfile
 
       cache_from:
-        - type=gha,scope=integration-tests
+        - type=gha,scope=integration-test
 
       cache_to:
-        - type=gha,mode=max,scope=integration-tests
+        - type=gha,mode=max,scope=integration-test
 
     environment:
       API_BASE_URL: http://nginx
