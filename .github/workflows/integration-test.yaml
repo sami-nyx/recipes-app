@@ -127,18 +127,37 @@ jobs:
       # ============================================================
       # Run the integration test suite
       # ============================================================
-      # Brings up the full stack (postgres, recipes-api, recipes-ui-build,
-      # nginx, and the integration-test runner from test/component/) and
-      # blocks until the integration-test container exits, propagating
-      # its exit code - a real test failure fails this step (and, since
-      # GitHub Actions stops a job at its first failed step, tag
-      # resolution and the ECR publish below never run against untested
-      # code).
+      # Two steps, not one `up --abort-on-container-exit`/
+      # `--exit-code-from` call - both of docker compose's abort flags
+      # turned out wrong for this stack:
+      #
+      #   --abort-on-container-exit stops everything the moment ANY
+      #   container exits, clean or not. recipes-ui-build is a one-shot
+      #   service that's *supposed* to exit 0 once it's copied its build
+      #   output into the shared volume - that flag was tearing the whole
+      #   stack down the instant it finished, often while postgres was
+      #   still mid-initdb, nowhere near healthy, and long before
+      #   integration-test ever ran a single test.
+      #
+      #   --abort-on-container-failure looked like the fix (only trip on a
+      #   real failure), but verified live: it doesn't fire on the watched
+      #   service's own successful exit either - a passing test run just
+      #   left the stack running forever, which in CI means burning the
+      #   job's timeout on every single green run instead of a fast, cheap
+      #   exit.
+      #
+      # Bringing up the long-running services detached first, then running
+      # the test container on its own, sidesteps both: `docker compose
+      # run` gives back the container's actual exit code directly, with no
+      # abort-flag interaction to get wrong.
       - name: Run integration tests
         run: |
-          docker compose -f docker-compose.yaml up \
-            --abort-on-container-exit \
-            --exit-code-from integration-test
+          set -euo pipefail
+
+          docker compose -f docker-compose.yaml up -d \
+            postgres recipes-api recipes-ui-build nginx
+
+          docker compose -f docker-compose.yaml run --rm integration-test
 
       # ============================================================
       # Cleanup
