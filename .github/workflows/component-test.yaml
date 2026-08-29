@@ -87,17 +87,24 @@ jobs:
       # ============================================================
       # Run the component test suite
       # ============================================================
-      # Brings up recipes-api's own compose stack (postgres, recipes-api,
-      # and the component-test runner from test/component/ - no nginx,
-      # no other component) and blocks until the component-test container
-      # exits, propagating its exit code - a real test failure fails this
-      # step (and, since GitHub Actions stops a job at its first failed
-      # step, nothing downstream sees this as a passing run).
+      # Two steps, not one `up --abort-on-container-exit`/
+      # `--exit-code-from` call - see the equivalent step in
+      # integration-test.yaml for why: docker compose's abort flags don't
+      # cleanly express "stop when the test container exits, pass or
+      # fail, but don't let some other container's expected clean exit
+      # take the whole stack down with it." No one-shot service exists in
+      # this particular stack today, so the original bug that motivated
+      # this never actually bit here - kept the same shape anyway so
+      # there's one pattern for "bring up dependencies, then run the
+      # tests" across both tiers, rather than two subtly different ones.
       - name: Run component tests
         run: |
-          docker compose -f recipes-backend/recipes-api/docker-compose.yaml up \
-            --abort-on-container-exit \
-            --exit-code-from component-test
+          set -euo pipefail
+
+          docker compose -f recipes-backend/recipes-api/docker-compose.yaml up -d \
+            postgres recipes-api
+
+          docker compose -f recipes-backend/recipes-api/docker-compose.yaml run --rm component-test
 
       # ============================================================
       # Cleanup
