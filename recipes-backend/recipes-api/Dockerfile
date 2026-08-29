@@ -33,10 +33,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Runtime library required by psycopg/PostgreSQL clients
+# Runtime library required by psycopg/PostgreSQL clients. curl was here
+# too, but nothing in this image actually uses it - the compose-level
+# healthcheck calls Python's urllib directly, and production's
+# readinessProbe/livenessProbe are Kubernetes httpGet probes (kubelet
+# makes the request itself, from outside the container) - confirmed
+# against recipes-cluster-resources/apps/recipes-api/templates/
+# deployment.yaml before removing it.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
-    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed Python packages from builder
