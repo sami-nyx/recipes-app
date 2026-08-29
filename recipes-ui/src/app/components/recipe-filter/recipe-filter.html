@@ -31,6 +31,24 @@
     }
   </mat-form-field>
 
+  <!-- Contributor Filter -->
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Contributor</mat-label>
+    <mat-icon matPrefix>person_search</mat-icon>
+    <input
+      matInput
+      [ngModel]="contributor()"
+      (ngModelChange)="contributor.set($event); onFilterUpdated()"
+      [disabled]="onlyMyRecipes()"
+      placeholder="e.g. sami_cooks"
+    />
+    @if (contributor()) {
+      <button matSuffix mat-icon-button (click)="contributor.set(''); onFilterUpdated()">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
   <!-- Prep Time Filter -->
   <div class="filter-group">
     <div class="filter-label">

@@ -1,4 +1,4 @@
-name: Integration Tests & Image Publish (on push to develop)
+name: Integration Test & Image Publish (on push to develop)
 
 on:
   workflow_call:
@@ -11,20 +11,37 @@ on:
 
     outputs:
       image-tag:
-        description: "Tag of the image published to ECR"
+        description: "Tag of the image published to ECR - empty if publish-image was false"
         value: ${{ jobs.integration-test.outputs.image-tag }}
 
       image-uri:
-        description: "Full URI of the image published to ECR"
+        description: "Full URI of the image published to ECR - empty if publish-image was false"
         value: ${{ jobs.integration-test.outputs.image-uri }}
 jobs:
   integration-test:
     # Job name kept plain (not matching the workflow-level name above) -
     # image publishing only actually happens when called with
-    # publish-image: true (push-to-develop-ci.yaml); the PR-to-develop
-    # pipeline calls this same workflow for tests only, publish-image
-    # defaults to false. See the "Publish tested image to ECR" step below.
-    name: Integration Tests
+    # publish-image: true. push-to-develop-ci.yaml calls this with
+    # publish-image set to whether recipes-api itself changed - this job
+    # still *runs* (and still gates promotion to main) on a frontend-only
+    # change too, since it's the only place the UI's production build and
+    # nginx routing get exercised together, but there's no new recipes-api
+    # image to publish in that case. See the "Resolve next version" step
+    # below - unlike the old combined component-test workflow this
+    # replaced, that step (and everything after it) is now itself gated
+    # on publish-image, not just the ECR-push step - previously it ran
+    # unconditionally, which meant image-tag/image-uri could come back
+    # non-empty even when nothing was actually published, and a caller
+    # naively trusting a non-empty image-tag would try to verify/tag an
+    # image in ECR that was never pushed.
+    #
+    # "Integration test": nginx + recipes-api + recipes-ui-build +
+    # postgres together, through the real system topology (routing,
+    # proxy headers, the UI's actual production build) - via the
+    # repo-root docker-compose.yaml. Distinct from the component tier
+    # (component-test.yaml), which only validates recipes-api against its
+    # own direct dependency, in isolation.
+    name: Integration Test
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -46,13 +63,17 @@ jobs:
       # LOCAL_IMAGE is also passed to `docker compose` below (compose
       # substitutes it into docker-compose.yaml's `recipes-api.image:`) so
       # the stack reuses the image just built/loaded here instead of
-      # rebuilding it from scratch.
+      # rebuilding it from scratch. recipes-ui-build has no equivalent
+      # pre-build step - it's built directly by `docker compose up` below,
+      # relying on its own cache_from/cache_to (declared in
+      # docker-compose.yaml) rather than a dedicated buildx step, since
+      # (unlike recipes-api) it's never independently tagged and pushed
+      # anywhere - it only needs to exist for the duration of this job.
       LOCAL_IMAGE: ${{ vars.LOCAL_IMAGE }}
 
       # ============================================================
       # Database
       # ============================================================
-      AUTO_CREATE_DB: true
       DB_NAME: ${{ vars.DB_NAME }}
       DB_USER_NAME: ${{ vars.DB_USER_NAME }}
       DB_SCHEME: ${{ vars.DB_SCHEME }}
@@ -80,19 +101,20 @@ jobs:
           clean: true
           sparse-checkout: |
             recipes-backend
+            recipes-ui
+            nginx
             test
             .github
-            nginx
             docker-compose.yaml
 
       # ============================================================
       # Set up Docker Buildx (Required for GHA Caching)
       # ============================================================
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e #v4.3.0
 
       - name: Build Recipes API
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a #v7.3.0
         with:
           context: ./recipes-backend/recipes-api
           file: ./recipes-backend/recipes-api/Dockerfile
@@ -105,19 +127,37 @@ jobs:
       # ============================================================
       # Run the integration test suite
       # ============================================================
-      # Brings up the full stack (postgres, recipes-api, nginx, and the
-      # integration-tests runner from test/backend/) and blocks until the
-      # integration-tests container exits, propagating its exit code -
-      # a real test failure fails this step (and, since GitHub Actions
-      # stops a job at its first failed step, everything after it: tag
-      # resolution and the ECR publish below never run against untested
-      # code). This step was previously entirely missing - the workflow
-      # built an image and reported success without ever exercising it.
+      # Two steps, not one `up --abort-on-container-exit`/
+      # `--exit-code-from` call - both of docker compose's abort flags
+      # turned out wrong for this stack:
+      #
+      #   --abort-on-container-exit stops everything the moment ANY
+      #   container exits, clean or not. recipes-ui-build is a one-shot
+      #   service that's *supposed* to exit 0 once it's copied its build
+      #   output into the shared volume - that flag was tearing the whole
+      #   stack down the instant it finished, often while postgres was
+      #   still mid-initdb, nowhere near healthy, and long before
+      #   integration-test ever ran a single test.
+      #
+      #   --abort-on-container-failure looked like the fix (only trip on a
+      #   real failure), but verified live: it doesn't fire on the watched
+      #   service's own successful exit either - a passing test run just
+      #   left the stack running forever, which in CI means burning the
+      #   job's timeout on every single green run instead of a fast, cheap
+      #   exit.
+      #
+      # Bringing up the long-running services detached first, then running
+      # the test container on its own, sidesteps both: `docker compose
+      # run` gives back the container's actual exit code directly, with no
+      # abort-flag interaction to get wrong.
       - name: Run integration tests
         run: |
-          docker compose -f docker-compose.yaml up \
-            --abort-on-container-exit \
-            --exit-code-from integration-tests
+          set -euo pipefail
+
+          docker compose -f docker-compose.yaml up -d \
+            postgres recipes-api recipes-ui-build nginx
+
+          docker compose -f docker-compose.yaml run --rm integration-test
 
       # ============================================================
       # Cleanup
@@ -139,6 +179,7 @@ jobs:
       # ------------------------------------------------------------------------
 
       - name: Resolve next version
+        if: ${{ inputs.publish-image }}
         id: resolve-tag
         uses: ./.github/actions/resolve-tag
         with:
@@ -150,7 +191,7 @@ jobs:
         shell: bash
         env:
           IMAGE_TAG: ${{ steps.resolve-tag.outputs.NEXT_TAG }}
-          
+
         run: |
           set -euo pipefail
 

@@ -1,8 +1,26 @@
+# Why nginx is here at all: it doesn't rehearse anything about how this
+# app actually ships. Production serves the UI from S3 + CloudFront and
+# routes recipes-api through a Kubernetes Ingress (see
+# recipes-cluster-resources/apps/recipes-api/templates/ingress.yaml) -
+# neither one is this container or this nginx.conf. What it's actually
+# for:
+#   - One origin locally. `docker compose up` gives you http://localhost
+#     serving both the built Angular app and /api//system, instead of
+#     two different ports/origins - avoids CORS complexity in local dev
+#     and lets you click around the app the way a real visitor would hit
+#     one domain.
+#   - Something for tests to actually route through. It's what makes
+#     "does proxying/routing work" a testable question at all, separate
+#     from "does recipes-api's own logic work" (see test/component/ vs.
+#     the future integration tier).
+# If either of those stops being true, there's no other reason to keep
+# it - it's not a production stand-in.
+
 services:
   postgres:
     image: postgres:16-alpine
     container_name: recipes_postgres
-    restart: always
+    restart: unless-stopped
 
     environment:
       POSTGRES_DB: ${DB_NAME}
@@ -50,7 +68,7 @@ services:
     command: ["python", "app.py"]
 
     container_name: recipes_api
-    restart: always
+    restart: unless-stopped
 
     environment:
       FLASK_ENV: ${FLASK_ENV}
@@ -87,36 +105,81 @@ services:
       start_period: 5s
 
 
+  # One-shot: builds the Angular app and exits. Not a long-running
+  # service like recipes-api/nginx - `depends_on: condition:
+  # service_completed_successfully` below (on nginx) is what makes that
+  # distinction matter: nginx waits for this to *finish*, not just start.
+  #
+  # A real `build:` (not a bind-mount + inline command) so `npm ci` is
+  # its own Docker layer, cached the same way recipes-api's build already
+  # is (cache_from/cache_to type=gha) - editing application code alone
+  # doesn't force a full reinstall on every `docker compose up`.
+  #
+  # nginx stays the plain, stock nginx:1.29-alpine image below - it
+  # doesn't know or care how the UI was built. The hand-off is explicit:
+  # this container's own command copies its baked-in build output
+  # (recipes-ui/Dockerfile's RUN npm run build already produced it, as
+  # an image layer) into the shared `rendered_spa_content` volume, which
+  # nginx then mounts read-only. `rm -rf` first so a rebuild can't leave
+  # stale files (a renamed/removed asset from a previous build) sitting
+  # in the volume alongside the new ones.
+  recipes-ui-build:
+    image: ${LOCAL_UI_IMAGE:-recipes-ui:local}
+    build:
+      context: ./recipes-ui
+      dockerfile: Dockerfile
+
+      cache_from:
+        - type=gha,scope=recipes-ui
+
+      cache_to:
+        - type=gha,mode=max,scope=recipes-ui
+
+    volumes:
+      - rendered_spa_content:/output
+
+    command: sh -c "rm -rf /output/* && cp -r /app/dist/recipes-ui/browser/. /output/"
+
+
   nginx:
     image: nginx:1.29-alpine
     container_name: recipes_nginx
-    restart: always
+    restart: unless-stopped
 
     ports:
       - "80:80"
 
     volumes:
-      - ./recipes-ui/dist/recipes-ui/browser:/usr/share/nginx/html:ro
+      - rendered_spa_content:/usr/share/nginx/html:ro
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/50x.html:/usr/share/nginx/errors/50x.html:ro
 
     depends_on:
       recipes-api:
         condition: service_healthy
+      recipes-ui-build:
+        condition: service_completed_successfully
 
     networks:
       - app_network
 
 
-  integration-tests:
+  # The whole-system stack (nginx + recipes-api + recipes-ui-build + this
+  # test-runner, going through nginx) - the integration tier, wired into
+  # .github/workflows/integration-test.yaml. Same test/component/
+  # Dockerfile and pytest suite the component tier uses (conftest.py
+  # reads its target from API_BASE_URL, not hardcoded), just pointed at
+  # nginx instead of recipes-api directly.
+  integration-test:
     build:
-      context: ./test/backend/
+      context: ./test/component/
       dockerfile: Dockerfile
 
       cache_from:
-        - type=gha,scope=integration-tests
+        - type=gha,scope=integration-test
 
       cache_to:
-        - type=gha,mode=max,scope=integration-tests
+        - type=gha,mode=max,scope=integration-test
 
     environment:
       API_BASE_URL: http://nginx
@@ -131,6 +194,7 @@ services:
 
 volumes:
   postgres_data:
+  rendered_spa_content:
 
 
 networks:

@@ -1,0 +1,118 @@
+name: Component Test
+
+on:
+  workflow_call:
+
+jobs:
+  component-test:
+    # "Component test": recipes-api validated against its own direct
+    # dependency (postgres) only, via recipes-backend/recipes-api/
+    # docker-compose.yaml - no nginx, no other application component.
+    # Test only - no publish capability here. Publishing to ECR now
+    # belongs to the integration tier (integration-test.yaml), which
+    # runs once per merge to develop instead of once per PR-validation
+    # AND once per merge - see recipes-api-enhancements.md /
+    # recipes-ui-enhancements.md for why.
+    name: Component Test
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+
+    env:
+      # ============================================================
+      # Application
+      # ============================================================
+
+      FLASK_ENV: ${{ vars.FLASK_ENV }}
+      PORT: ${{ vars.PORT }}
+      APP_VERSION: ${{ vars.APP_VERSION }}
+      CORS_ORIGIN: ${{ vars.CORS_ORIGIN }}
+
+      # LOCAL_IMAGE is also passed to `docker compose` below (compose
+      # substitutes it into recipes-backend/recipes-api/docker-compose.yaml's
+      # `recipes-api.image:`) so the stack reuses the image just
+      # built/loaded here instead of rebuilding it from scratch.
+      LOCAL_IMAGE: ${{ vars.LOCAL_IMAGE }}
+
+      # ============================================================
+      # Database
+      # ============================================================
+      DB_NAME: ${{ vars.DB_NAME }}
+      DB_USER_NAME: ${{ vars.DB_USER_NAME }}
+      DB_SCHEME: ${{ vars.DB_SCHEME }}
+
+      # ============================================================
+      # Secrets
+      # ============================================================
+
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+      # Required separately from JWT_SECRET_KEY since config.py split them
+      # into two independent secrets - missing here, the recipes-api
+      # container fails at startup (get_required_env raises), so the
+      # stack this step brings up would never become healthy.
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+
+    steps:
+      # ============================================================
+      # Checkout
+      # ============================================================
+
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+        with:
+          clean: true
+          sparse-checkout: |
+            recipes-backend
+            test
+            .github
+
+      # ============================================================
+      # Set up Docker Buildx (Required for GHA Caching)
+      # ============================================================
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e #v4.3.0
+
+      - name: Build Recipes API
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a #v7.3.0
+        with:
+          context: ./recipes-backend/recipes-api
+          file: ./recipes-backend/recipes-api/Dockerfile
+          load: true
+          tags: ${{ vars.LOCAL_IMAGE }}
+
+          cache-from: type=gha,scope=recipes-api
+          cache-to: type=gha,mode=max,scope=recipes-api
+
+      # ============================================================
+      # Run the component test suite
+      # ============================================================
+      # Two steps, not one `up --abort-on-container-exit`/
+      # `--exit-code-from` call - see the equivalent step in
+      # integration-test.yaml for why: docker compose's abort flags don't
+      # cleanly express "stop when the test container exits, pass or
+      # fail, but don't let some other container's expected clean exit
+      # take the whole stack down with it." No one-shot service exists in
+      # this particular stack today, so the original bug that motivated
+      # this never actually bit here - kept the same shape anyway so
+      # there's one pattern for "bring up dependencies, then run the
+      # tests" across both tiers, rather than two subtly different ones.
+      - name: Run component tests
+        run: |
+          set -euo pipefail
+
+          docker compose -f recipes-backend/recipes-api/docker-compose.yaml up -d \
+            postgres recipes-api
+
+          docker compose -f recipes-backend/recipes-api/docker-compose.yaml run --rm component-test
+
+      # ============================================================
+      # Cleanup
+      # ============================================================
+
+      - name: Teardown Environment
+        if: ${{ always() }}
+        run: |
+          docker compose -f recipes-backend/recipes-api/docker-compose.yaml down \
+            --volumes \
+            --remove-orphans
