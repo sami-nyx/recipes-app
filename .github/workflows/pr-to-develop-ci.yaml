@@ -57,6 +57,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+          # Without this, Super-Linter's "what changed" diff falls back to
+          # comparing against the repository's configured default branch
+          # (main here), not this PR's actual base (develop) - main only
+          # advances through the separate develop -> main promotion PR, so
+          # it can sit many commits behind. The first real run surfaced
+          # pre-existing issues in a file this PR never touched, purely
+          # because that file differs between this branch and main, not
+          # develop. github.base_ref is the PR's real target branch.
+          DEFAULT_BRANCH: ${{ github.base_ref }}
+
           VALIDATE_ALL_CODEBASE: false
           FIX_MODE_ENABLED: false
 

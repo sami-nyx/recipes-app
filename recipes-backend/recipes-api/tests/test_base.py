@@ -2,7 +2,6 @@ import unittest
 
 from app import create_app
 from extensions import db
-from models.recipe import Recipe, RecipePart, Ingredient
 
 
 class BaseTestCase(unittest.TestCase):
@@ -12,7 +11,7 @@ class BaseTestCase(unittest.TestCase):
 
         self.app = create_app({
             'TESTING': True,
-             
+
             'FLASK_ENV': 'development',
             'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
             'SQLALCHEMY_TRACK_MODIFICATIONS': False,

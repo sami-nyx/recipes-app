@@ -40,8 +40,13 @@ WORKDIR /app
 # makes the request itself, from outside the container) - confirmed
 # against recipes-cluster-resources/apps/recipes-api/templates/
 # deployment.yaml before removing it.
+#
+# Version pinned per hadolint DL3008 (reproducible builds) - resolved via
+# `apt-cache policy libpq5` against this same base image. Will need
+# bumping if/when python:3.11-slim's Debian snapshot moves past this
+# version and it ages out of the apt mirror.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
+    libpq5=17.11-0+deb13u1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed Python packages from builder
