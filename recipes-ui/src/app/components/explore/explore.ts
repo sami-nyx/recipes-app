@@ -36,7 +36,12 @@ export class Explore implements OnInit {
 
   private snackBar = inject(MatSnackBar);
   isLoading = signal<boolean>(true);
-  activeFilter = signal<RecipeFilter>({ query: '', maxPrepTime: 60, onlyMyRecipes: false });
+  activeFilter = signal<RecipeFilter>({
+    query: '',
+    maxPrepTime: 60,
+    onlyMyRecipes: false,
+    contributor: '',
+  });
   activeSort = signal<RecipeSort>('newest');
   recipes = this.recipeService.recipes;
 
@@ -45,6 +50,7 @@ export class Explore implements OnInit {
     const query = filter.query.toLowerCase().trim();
     const maxTime = filter.maxPrepTime;
     const onlyMine = filter.onlyMyRecipes;
+    const contributor = (filter.contributor ?? '').toLowerCase().trim();
     const currentUserId = this.userService.currentUser()?.id; // Assumes currentUser signal on UserService
 
     return this.recipes().filter((recipe) => {
@@ -53,8 +59,15 @@ export class Explore implements OnInit {
         recipe.description.toLowerCase().includes(query);
       const matchesTime = recipe.prepTimeMinutes <= maxTime;
       const matchesAuthor = !onlyMine || (currentUserId && recipe.author?.id === currentUserId);
+      // Independent of onlyMyRecipes - the filter component disables this
+      // input while onlyMyRecipes is on, but the check stays defensive
+      // here too rather than relying on that alone.
+      const matchesContributor =
+        !contributor ||
+        recipe.author?.username?.toLowerCase().includes(contributor) ||
+        recipe.author?.name?.toLowerCase().includes(contributor);
 
-      return matchesSearch && matchesTime && matchesAuthor;
+      return matchesSearch && matchesTime && matchesAuthor && matchesContributor;
     });
   });
 
