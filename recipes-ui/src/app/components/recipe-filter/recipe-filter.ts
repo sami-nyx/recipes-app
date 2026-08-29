@@ -35,12 +35,14 @@ export class RecipeFilterComponent {
   searchQuery = signal<string>('');
   maxPrepTime = signal<number>(60);
   onlyMyRecipes = signal<boolean>(false); // <--- New Signal
+  contributor = signal<string>('');
 
   onFilterUpdated(): void {
     this.filterChange.emit({
       query: this.searchQuery(),
       maxPrepTime: this.maxPrepTime(),
       onlyMyRecipes: this.onlyMyRecipes(),
+      contributor: this.contributor(),
     });
   }
 
@@ -48,6 +50,7 @@ export class RecipeFilterComponent {
     this.searchQuery.set('');
     this.maxPrepTime.set(60);
     this.onlyMyRecipes.set(false);
+    this.contributor.set('');
     this.onFilterUpdated();
   }
 }
