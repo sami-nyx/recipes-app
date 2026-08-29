@@ -363,6 +363,21 @@ jobs:
             PR_TITLE="Release: frontend"
           fi
 
+          PR_BODY="$(cat <<EOF
+          ## Automated release
+
+          Development validation completed successfully.
+
+          **Changes:** ${CHANGE_SUMMARY}
+          **Image tag:** \`${IMAGE_TAG:-unchanged}\`
+          **Source branch:** \`develop\`
+          **Target branch:** \`main\`
+          **Commit:** \`${GITHUB_SHA}\`
+
+          This pull request is created and kept up to date automatically by the development pipeline.
+          EOF
+          )"
+
           # Check whether develop -> main PR already exists
           EXISTING_PR="$(
             gh pr list \
@@ -380,6 +395,23 @@ jobs:
             echo "PR already exists:"
             echo "$PR_URL"
 
+            # Only refresh title/body when THIS push actually published a
+            # new image - on a frontend-only push IMAGE_TAG is empty, and
+            # overwriting an already-correct "Release vX.Y.Z" title with
+            # "Image tag: unchanged" would erase real information an
+            # earlier push captured, trading one stale-PR problem for a
+            # worse one. The PR's head is the develop branch itself, not
+            # a pinned commit, so merging it always ships whatever's
+            # actually on develop regardless of what the title says - this
+            # only keeps the displayed tag from silently drifting behind
+            # what a backend-changing push just published.
+            if [ -n "$IMAGE_TAG" ]; then
+              echo "New image tag this push ($IMAGE_TAG) - refreshing title/body"
+              gh pr edit "$PR_NUMBER" \
+                --title "$PR_TITLE" \
+                --body "$PR_BODY"
+            fi
+
             echo "pr-number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
             echo "pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
             echo "pr-status=existing" >> "$GITHUB_OUTPUT"
@@ -392,20 +424,7 @@ jobs:
               --base main \
               --head develop \
               --title "$PR_TITLE" \
-              --body "$(cat <<EOF
-          ## Automated release
-
-          Development validation completed successfully.
-
-          **Changes:** ${CHANGE_SUMMARY}
-          **Image tag:** \`${IMAGE_TAG:-unchanged}\`
-          **Source branch:** \`develop\`
-          **Target branch:** \`main\`
-          **Commit:** \`${GITHUB_SHA}\`
-
-          This pull request was created automatically by the development pipeline.
-          EOF
-          )"
+              --body "$PR_BODY"
           )"
 
           PR_NUMBER="$(
