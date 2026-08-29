@@ -67,17 +67,23 @@ jobs:
     # this check a broken commit would still get integration-tested (and
     # potentially published).
     #
-    # Runs whenever backend OR frontend changed, not backend alone - this
-    # is the only place the UI's production build and nginx routing get
-    # exercised together, so a frontend-only change still needs it.
+    # Runs whenever backend, frontend, OR the integration tier's own
+    # topology/config changed - not backend alone. This is the only place
+    # the UI's production build and nginx routing get exercised together,
+    # so a frontend-only change still needs it; a docker-compose.yaml/
+    # nginx/test-suite-only change needs it for the same reason, even
+    # though it touches neither recipes-backend/ nor recipes-ui/.
     # Publishing is narrower than running, though: no point minting a new
-    # recipes-api image/tag for a frontend-only change where the backend
-    # is byte-identical to what's already published - see
-    # `publish-image:` below.
+    # recipes-api image/tag for a change that never touched the backend
+    # itself - see `publish-image:` below.
     if: >-
       ${{
         needs.unit-tests.result == 'success' &&
-        (needs.unit-tests.outputs.backend == 'true' || needs.unit-tests.outputs.frontend == 'true')
+        (
+          needs.unit-tests.outputs.backend == 'true' ||
+          needs.unit-tests.outputs.frontend == 'true' ||
+          needs.unit-tests.outputs.integration == 'true'
+        )
       }}
 
     permissions:
@@ -295,12 +301,13 @@ jobs:
 
     # `always()` bypasses the default "skip if a needed job didn't
     # succeed" behavior - tag-commit/integration-test-and-publish read
-    # "skipped" on a frontend-only change (see that job's `if`), and this
-    # job must still run in that case: the UI still needs to reach main
-    # to be deployed. Explicitly still blocked by a genuine failure, and
-    # by there being nothing at all to promote (neither side changed -
-    # see recipes-ui-enhancements.md / recipes-api-enhancements.md for
-    # why an empty release PR is skipped rather than opened).
+    # "skipped" on a frontend-only (or integration-only) change (see that
+    # job's `if`), and this job must still run in that case: the change
+    # still needs to reach main. Explicitly still blocked by a genuine
+    # failure, and by there being nothing at all to promote (nothing
+    # changed - see recipes-ui-enhancements.md /
+    # recipes-api-enhancements.md for why an empty release PR is skipped
+    # rather than opened).
     #
     # needs.unit-tests.result == 'success' is required explicitly for the
     # same reason integration-test-and-publish now checks it: unit-tests
@@ -316,7 +323,11 @@ jobs:
         needs.tag-commit.result != 'cancelled' &&
         needs.integration-test-and-publish.result != 'failure' &&
         needs.integration-test-and-publish.result != 'cancelled' &&
-        (needs.unit-tests.outputs.backend == 'true' || needs.unit-tests.outputs.frontend == 'true')
+        (
+          needs.unit-tests.outputs.backend == 'true' ||
+          needs.unit-tests.outputs.frontend == 'true' ||
+          needs.unit-tests.outputs.integration == 'true'
+        )
       }}
 
     runs-on: ubuntu-22.04
@@ -345,22 +356,33 @@ jobs:
           IMAGE_TAG: ${{ needs.integration-test-and-publish.outputs.image-tag }}
           BACKEND_CHANGED: ${{ needs.unit-tests.outputs.backend }}
           FRONTEND_CHANGED: ${{ needs.unit-tests.outputs.frontend }}
+          INTEGRATION_CHANGED: ${{ needs.unit-tests.outputs.integration }}
         run: |
           set -euo pipefail
 
-          # No new image tag on a frontend-only release - IMAGE_TAG is
-          # empty in that case (integration-test-and-publish was
-          # skipped). Title/body describe what actually changed instead
-          # of a blank tag.
+          # No new image tag unless the backend itself changed - IMAGE_TAG
+          # is empty otherwise (integration-test-and-publish's publish
+          # step is gated on backend alone). Title/body describe what
+          # actually changed instead of a blank tag.
           if [ "$BACKEND_CHANGED" = "true" ] && [ "$FRONTEND_CHANGED" = "true" ]; then
             CHANGE_SUMMARY="backend + frontend"
             PR_TITLE="Release ${IMAGE_TAG}"
           elif [ "$BACKEND_CHANGED" = "true" ]; then
             CHANGE_SUMMARY="backend only"
             PR_TITLE="Release ${IMAGE_TAG}"
-          else
+          elif [ "$FRONTEND_CHANGED" = "true" ]; then
             CHANGE_SUMMARY="frontend only (no new recipes-api image)"
             PR_TITLE="Release: frontend"
+          elif [ "$INTEGRATION_CHANGED" = "true" ]; then
+            CHANGE_SUMMARY="integration/infra only - docker-compose.yaml, nginx, or the test tiers themselves (no new recipes-api image)"
+            PR_TITLE="Release: infra"
+          else
+            # Unreachable given this job's own `if:` (backend, frontend, or
+            # integration must be true for the job to run at all) - fail
+            # loudly instead of silently minting a misleading title if
+            # that guard is ever loosened without updating this too.
+            echo "::error::None of backend/frontend/integration changed - this job should not have run"
+            exit 1
           fi
 
           PR_BODY="$(cat <<EOF
