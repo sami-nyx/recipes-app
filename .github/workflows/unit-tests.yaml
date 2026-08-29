@@ -8,6 +8,9 @@ on:
       frontend:
         description: "Whether recipes-ui/** changed"
         value: ${{ jobs.changes.outputs.frontend }}
+      integration:
+        description: "Whether the integration-test tier's own topology/config changed (docker-compose.yaml, nginx/**, test/component/**, or the component/integration-test workflows and shared actions themselves)"
+        value: ${{ jobs.changes.outputs.integration }}
 
 jobs:
   changes:
@@ -18,6 +21,7 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      integration: ${{ steps.filter.outputs.integration }}
     steps:
       - name: Checkout Code Metadata
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 #v4.4.0
@@ -34,6 +38,24 @@ jobs:
               - 'recipes-backend/recipes-api/**'
             frontend:
               - 'recipes-ui/**'
+            # Nothing under recipes-backend/ or recipes-ui/ - this is what
+            # the integration tier actually exercises beyond those two: the
+            # stack topology, nginx routing, and the shared pytest suite
+            # both component-test and integration-test run. Without this,
+            # a docker-compose.yaml/nginx.conf/test-suite-only change (or
+            # an edit to the tier workflows themselves) matched neither
+            # `backend` nor `frontend`, so push-to-develop-ci.yaml's
+            # integration-test-and-publish never ran it, and
+            # create-main-pr never opened a PR to promote it - such a
+            # change could merge to develop and then sit there
+            # indefinitely, untested and unpromoted.
+            integration:
+              - 'docker-compose.yaml'
+              - 'nginx/**'
+              - 'test/component/**'
+              - '.github/workflows/component-test.yaml'
+              - '.github/workflows/integration-test.yaml'
+              - '.github/actions/**'
 
   # --------------------------------------------------
   # Job 2: Python Backend Tests (Runs conditionally)
