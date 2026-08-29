@@ -1,0 +1,63 @@
+name: Detect Changes
+
+# Shared by unit-tests.yaml (develop-side: PR and push) and
+# push-to-main-ci.yaml (main-side, gating update-gitops/deploy-ui) - both
+# needed the exact same backend/frontend/integration path detection, and
+# previously each maintained its own separate copy of this dorny/
+# paths-filter block. Two copies meant two places to update if the path
+# patterns ever changed - drifting out of sync silently.
+
+on:
+  workflow_call:
+    outputs:
+      backend:
+        description: "Whether recipes-backend/recipes-api/** changed"
+        value: ${{ jobs.changes.outputs.backend }}
+      frontend:
+        description: "Whether recipes-ui/** changed"
+        value: ${{ jobs.changes.outputs.frontend }}
+      integration:
+        description: "Whether the integration-test tier's own topology/config changed (docker-compose.yaml, nginx/**, test/component/**, or the component/integration-test workflows and shared actions themselves)"
+        value: ${{ jobs.changes.outputs.integration }}
+
+jobs:
+  changes:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      integration: ${{ steps.filter.outputs.integration }}
+    steps:
+      - name: Checkout Code Metadata
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 #v4.4.0
+        with:
+          sparse-checkout: |
+            .github
+
+      - name: Check for File Changes
+        id: filter
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 #v4.0.2
+        with:
+          filters: |
+            backend:
+              - 'recipes-backend/recipes-api/**'
+            frontend:
+              - 'recipes-ui/**'
+            # Nothing under recipes-backend/ or recipes-ui/ - this is what
+            # the integration tier actually exercises beyond those two: the
+            # stack topology, nginx routing, and the shared pytest suite
+            # both component-test and integration-test run. push-to-main-ci
+            # doesn't currently act on this output (nothing about the K8s/
+            # S3 deploy changes from a local-dev nginx config or CI
+            # workflow edit) - it's exposed here anyway so both callers
+            # share one filter definition rather than two that could drift.
+            integration:
+              - 'docker-compose.yaml'
+              - 'nginx/**'
+              - 'test/component/**'
+              - '.github/workflows/component-test.yaml'
+              - '.github/workflows/integration-test.yaml'
+              - '.github/actions/**'

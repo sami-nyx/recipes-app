@@ -40,7 +40,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    permissions: 
+    permissions:
       contents: read
       statuses: write
       issues: write
@@ -52,22 +52,32 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
+      - name: Run Super-Linter
+        uses: super-linter/super-linter@4ce20838b8ab83717e78138c5b3a1407148e0918 #v8.7.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  #     - name: Run Super-Linter
-  #       uses: super-linter/super-linter@v8.7.0
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Without this, Super-Linter's "what changed" diff falls back to
+          # comparing against the repository's configured default branch
+          # (main here), not this PR's actual base (develop) - main only
+          # advances through the separate develop -> main promotion PR, so
+          # it can sit many commits behind. The first real run surfaced
+          # pre-existing issues in a file this PR never touched, purely
+          # because that file differs between this branch and main, not
+          # develop. github.base_ref is the PR's real target branch.
+          DEFAULT_BRANCH: ${{ github.base_ref }}
 
-  #         VALIDATE_ALL_CODEBASE: false
-  #         FIX_MODE_ENABLED: false
+          VALIDATE_ALL_CODEBASE: false
+          FIX_MODE_ENABLED: false
 
-  #         VALIDATE_PYTHON_FLAKE8: true
-  #         VALIDATE_DOCKERFILE_HADOLINT: true
-  #         VALIDATE_YAML: true
-  #         VALIDATE_GITHUB_ACTIONS: true
-  #         VALIDATE_BASH: true
+          VALIDATE_PYTHON_FLAKE8: true
+          VALIDATE_DOCKERFILE_HADOLINT: true
+          VALIDATE_YAML: true
+          VALIDATE_GITHUB_ACTIONS: true
+          VALIDATE_BASH: true
 
-  #         SAVE_SUPER_LINTER_SUMMARY: true
+          SAVE_SUPER_LINTER_SUMMARY: true
+
   unit-tests:
     
     permissions:
@@ -78,18 +88,21 @@ jobs:
 
   component-test:
     needs:
-      # - lint
+      # Deliberately not gated on lint - lint and component-test run in
+      # parallel (both only need unit-tests) so a lint-only failure
+      # doesn't delay feedback from the slower Docker-based test run.
+      # The overall PR result below still requires both.
       - unit-tests
 
     uses: ./.github/workflows/component-test.yaml
 
-    secrets: inherit  
+    secrets: inherit
   notify:
     name: Notify Slack - Finished
     runs-on: ubuntu-latest
 
     needs:
-      # - lint
+      - lint
       - unit-tests
       - component-test
 
@@ -105,14 +118,14 @@ jobs:
         id: result
         shell: bash
         run: |
-          # lint deliberately excluded: it's not in this job's `needs`
-          # above (its actual check is commented out - see the `lint`
-          # job), so `needs.lint.result` isn't populated in this context
-          # and always evaluates to empty. Referencing it here previously
-          # meant this condition was never true - the Slack summary
-          # always reported "PR validation failed" regardless of the
-          # real outcome.
+          # lint used to be excluded here because its actual check was
+          # commented out (see the `lint` job) - `needs.lint.result` would
+          # have been empty, and including it in this condition meant the
+          # Slack summary always reported "PR validation failed" regardless
+          # of the real outcome. Now that Super-Linter actually runs, it's
+          # a real signal and belongs in the overall result.
           if [[ \
+            "${{ needs.lint.result }}" == "success" &&
             "${{ needs.unit-tests.result }}" == "success" &&
             "${{ needs.component-test.result }}" == "success" \
           ]]; then
@@ -132,6 +145,7 @@ jobs:
             PR: #${{ github.event.pull_request.number }}
             Promotion: `${{ github.head_ref || github.ref_name }}` → `develop`
 
+            Lint: `${{ needs.lint.result }}`
             Unit tests: `${{ needs.unit-tests.result }}`
             Component test: `${{ needs.component-test.result }}`
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -434,9 +434,11 @@ jobs:
                 --body "$PR_BODY"
             fi
 
-            echo "pr-number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
-            echo "pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
-            echo "pr-status=existing" >> "$GITHUB_OUTPUT"
+            {
+              echo "pr-number=$PR_NUMBER"
+              echo "pr-url=$PR_URL"
+              echo "pr-status=existing"
+            } >> "$GITHUB_OUTPUT"
 
             exit 0
           fi
@@ -458,9 +460,11 @@ jobs:
           echo "Created PR #$PR_NUMBER"
           echo "$PR_URL"
 
-          echo "pr-number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
-          echo "pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
-          echo "pr-status=created" >> "$GITHUB_OUTPUT"
+          {
+            echo "pr-number=$PR_NUMBER"
+            echo "pr-url=$PR_URL"
+            echo "pr-status=created"
+          } >> "$GITHUB_OUTPUT"
 
 
   # ============================================================================
