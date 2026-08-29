@@ -16,7 +16,15 @@ RUN npm ci
 
 COPY . .
 
-# Same command push-to-main-ci.yaml's deploy-ui job runs for the real S3
-# deploy - what's built here matches what actually ships, not a
-# coincidentally-similar dev build.
-RUN npm run build -- --configuration production
+# NOT --configuration production: that swaps in environment.production.ts,
+# which points at the real deployed API (https://www.weaversls.com) -
+# correct for the actual S3/CloudFront deploy, where frontend and backend
+# are genuinely on different origins, but wrong here. This build only ever
+# runs inside docker-compose.yaml's stack, where nginx is the single local
+# origin for both the UI and /api (see that file's top comment) - a build
+# that calls the real production API instead would silently bypass the
+# local recipes-api container entirely, defeating the point of that stack
+# and, worse, being a "local" UI that's actually live against production
+# data. --configuration development uses environment.development.ts
+# (http://localhost:80/api), which is exactly this stack's own origin.
+RUN npm run build -- --configuration development
