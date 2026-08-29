@@ -12,7 +12,7 @@ class BaseTestCase(unittest.TestCase):
 
         self.app = create_app({
             'TESTING': True,
-
+             
             'FLASK_ENV': 'development',
             'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
             'SQLALCHEMY_TRACK_MODIFICATIONS': False,
