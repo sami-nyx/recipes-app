@@ -185,11 +185,19 @@ jobs:
 
       - name: Deploy UI to S3
         working-directory: recipes-ui
+        env:
+          # Not a git tag: a frontend-only release mints no tag at all (see
+          # tag-commit in push-to-develop-ci.yaml, gated on the backend
+          # changing) - the "latest" tag at deploy time could be a stale
+          # backend release with no relation to the UI code going out.
+          # GITHUB_SHA is always the exact commit actually deployed.
+          GIT_COMMIT: ${{ github.sha }}
         run: |
           aws s3 sync \
             dist/recipes-ui/browser \
             s3://recipes-ui-static-hosting \
-            --delete
+            --delete \
+            --metadata "git-commit=$GIT_COMMIT"
 
       - name: Invalidate CloudFront cache
         env:
