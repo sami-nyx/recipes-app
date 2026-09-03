@@ -178,7 +178,7 @@ Two independent suites, each gated on its own path and run through reusable work
 ├── component-test.yaml
 ├── integration-test.yaml
 ├── pr-to-develop-ci.yaml
-├── push-to develop-ci.yaml
+├── push-to-develop-ci.yaml
 └── push-to-main-ci.yaml
 ```
 
@@ -687,7 +687,7 @@ Recipes can contain:
 │       ├── component-test.yaml
 │       ├── integration-test.yaml
 │       ├── pr-to-develop-ci.yaml
-│       ├── push-to develop-ci.yaml
+│       ├── push-to-develop-ci.yaml
 │       └── push-to-main-ci.yaml
 │
 ├── recipes-backend/
