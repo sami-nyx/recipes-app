@@ -2,7 +2,6 @@ import unittest
 
 from app import create_app
 from extensions import db
-from models.recipe import Recipe, RecipePart, Ingredient
 
 
 class BaseTestCase(unittest.TestCase):

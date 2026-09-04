@@ -31,7 +31,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
     networks:
-      - db_network
+      - backend_net
 
     healthcheck:
       test:
@@ -90,8 +90,8 @@ services:
         condition: service_healthy
 
     networks:
-      - app_network
-      - db_network
+      - frontend_net
+      - backend_net
 
     healthcheck:
       test:
@@ -161,7 +161,7 @@ services:
         condition: service_completed_successfully
 
     networks:
-      - app_network
+      - frontend_net
 
 
   # The whole-system stack (nginx + recipes-api + recipes-ui-build + this
@@ -189,7 +189,7 @@ services:
         condition: service_started
 
     networks:
-      - app_network
+      - frontend_net
 
 
 volumes:
@@ -198,8 +198,8 @@ volumes:
 
 
 networks:
-  app_network:
+  frontend_net:
     driver: bridge
 
-  db_network:
+  backend_net:
     driver: bridge
