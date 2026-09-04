@@ -23,6 +23,16 @@ jobs:
   changes:
     name: Detect Changes
     uses: ./.github/workflows/detect-changes.yaml
+    # detect-changes.yaml's own job needs contents: read + pull-requests:
+    # read (dorny/paths-filter) - a reusable workflow can never be granted
+    # more than its caller explicitly passes down, so this has to be
+    # declared here too, not just there. Same reasoning already applied
+    # to update-gitops/deploy-ui below, and to pr-to-develop-ci.yaml's
+    # equivalent call into unit-tests.yaml (which is why that path never
+    # hit this - this job was just missing it).
+    permissions:
+      contents: read
+      pull-requests: read
 
   update-gitops:
     name: Update GitOps
