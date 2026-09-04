@@ -2,7 +2,7 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { RecipeService } from '../../services/recipe.service';
-import { UserService } from '../../services/user-service'; // <--- Import UserService
+import { UserService } from '../../services/user-service';
 import { RecipeFilter } from '../../models/recipe-filter.model';
 import { Recipe, RecipeSort } from '../../models/recipes.model';
 
@@ -32,7 +32,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 export class Explore implements OnInit {
   private router = inject(Router);
   private recipeService = inject(RecipeService);
-  private userService = inject(UserService); // <--- Inject UserService
+  private userService = inject(UserService);
 
   private snackBar = inject(MatSnackBar);
   isLoading = signal<boolean>(true);
