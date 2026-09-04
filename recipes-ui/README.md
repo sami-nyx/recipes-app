@@ -1,59 +1,70 @@
-# RecipesUi
+# recipes-ui
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.0.8.
+The Angular frontend for the Recipes Platform - authentication, browsing/searching recipes, and a full recipe editor with dynamic parts/ingredients/instructions.
 
-## Development server
+---
 
-To start a local development server, run:
+## Pages
 
-```bash
-ng serve
+| Route | Component | What it does |
+|---|---|---|
+| `/` | `Landing` | Entry page |
+| `/explore` | `Explore` | Browse/filter recipes - search, prep time, contributor, "only my recipes" |
+| `/recipes/:id` | `ViewRecipeComponent` | A single recipe's full detail |
+| `/recipes/create`, `/recipes/:id/edit` | `RecipeFormComponent` | Create/edit a recipe - reactive form, dynamic `FormArray`s for parts, ingredients, and instructions |
+| `/user/:authorId` | `UserBioComponent` | An author's public profile + their published recipes |
+| `/login`, `/register` | `LoginComponent`, `RegisterComponent` | Auth |
+
+---
+
+## Tech Stack
+
+- **Framework:** Angular 22 (standalone components, no `NgModule`s), TypeScript
+- **UI:** Angular Material
+- **Forms:** Reactive Forms (`FormBuilder`/`FormGroup`/`FormArray`)
+- **Testing:** Vitest (Angular's `ng test` builder), against `jsdom`
+- **State:** Angular signals - no external state management library
+
+---
+
+## Talking to the API
+
+`src/environments/environment.ts` / `environment.production.ts` hold `apiUrl` - everything goes through `environment.fullApiUrl`, never a hardcoded host. `auth.interceptor.ts` is registered globally and attaches `Authorization: Bearer <token>` to every outgoing request once `UserService` holds a token from login - no per-service auth header wiring.
+
+---
+
+## Project Structure
+
+```text
+src/app/
+├── components/
+│   ├── landing/                     # Entry page
+│   ├── explore/                     # Recipe browsing + search/filter
+│   ├── recipe-card/                 # Reusable recipe summary card
+│   ├── recipe-filter/                # Search/filter controls used by explore
+│   ├── recipe-form-component/        # Create/edit - dynamic parts/ingredients/instructions
+│   ├── view-recipe-component/        # Single recipe detail view
+│   ├── user-bio-component/           # Author profile page
+│   ├── personal-component/           # Current user's own recipe list
+│   ├── edit-profile-dialog/          # Profile-edit Material dialog
+│   ├── login-component/, register-component/
+│   └── auth/                        # auth.interceptor.ts
+├── services/
+│   ├── user-service.ts              # Auth state, token storage, current user
+│   ├── recipe.service.ts            # Recipe CRUD against the API
+│   └── author-data.service.ts       # Author-profile lookups
+├── models/                          # Recipe, Author, RecipeFilter, etc.
+├── environments/                    # apiUrl per build configuration
+└── app.routes.ts
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+---
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Commands
 
 ```bash
-ng generate component component-name
+npm ci                                       # install dependencies
+npm run start                                # dev server, http://localhost:4200
+npm run build -- --configuration production  # production build (what CI runs)
+npm run test                                 # unit tests (Vitest, watch off in CI: --watch=false)
 ```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
