@@ -6,7 +6,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatButtonModule } from '@angular/material/button';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'; // <--- Import MatSlideToggle
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { RecipeFilter } from '../../models/recipe-filter.model';
 import { UserService } from '../../services/user-service';
 
@@ -21,7 +21,7 @@ import { UserService } from '../../services/user-service';
     MatIconModule,
     MatSliderModule,
     MatButtonModule,
-    MatSlideToggleModule, // <--- Add to imports
+    MatSlideToggleModule,
   ],
   templateUrl: './recipe-filter.html',
   styleUrl: './recipe-filter.css',
@@ -34,7 +34,7 @@ export class RecipeFilterComponent {
 
   searchQuery = signal<string>('');
   maxPrepTime = signal<number>(60);
-  onlyMyRecipes = signal<boolean>(false); // <--- New Signal
+  onlyMyRecipes = signal<boolean>(false);
   contributor = signal<string>('');
 
   onFilterUpdated(): void {

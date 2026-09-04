@@ -14,6 +14,8 @@ The application itself consists of:
 
 Users can create accounts, authenticate, create and manage recipes, and browse recipes published by other users.
 
+This repo's CI never deploys anything itself: it publishes the backend image to Amazon ECR and commits the new tag into a separate repo, [`recipes-gitops`](https://github.com/sami-nyx/recipes-gitops), which Argo CD watches and reconciles onto the cluster provisioned by [`recipes-aws-infra`](https://github.com/sami-nyx/recipes-aws-infra) - those two repos are the actual consumers of what this one produces.
+
 While the application demonstrates full-stack development, the main focus of this repository is the automation surrounding it:
 
 * Pull request validation (static analysis, unit tests, component tests)

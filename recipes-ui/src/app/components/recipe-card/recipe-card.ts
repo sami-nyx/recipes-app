@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, input, output, inject } from '@angular/core';
-import { Router, RouterLink } from '@angular/router'; // 1. Import Router & RouterLink
+import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,19 +17,17 @@ import { MatDialog } from '@angular/material/dialog';
   styleUrl: './recipe-card.css',
 })
 export class RecipeCard {
-  // private router = inject(Router); // Optional: if you need programmatic navigation
-
   recipe = input.required<Recipe>();
-  deleteClick = output<Recipe>(); // <--- New delete output
-  // Outputs for user actions
 
+  // Outputs for user actions
+  deleteClick = output<Recipe>();
   favoriteToggle = output<Recipe>();
   cardClick = output<Recipe>(); // recipe id
   authorClick = output<Recipe>(); // author id or username
 
   private router = inject(Router);
   private userService = inject(UserService);
-  private dialog = inject(MatDialog); // <--- Inject MatDialog
+  private dialog = inject(MatDialog);
   readonly isAuthenticated = this.userService.isAuthenticated;
 
   isOwner(): boolean {
@@ -37,7 +35,6 @@ export class RecipeCard {
   }
   onEdit(event: Event): void {
     event.stopPropagation(); // Stop card click from triggering
-    // Adjust route path to match your App Routing setup
     this.router.navigate(['/recipes', this.recipe().id, 'edit']);
   }
   onCardClick(event?: MouseEvent): void {
